@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script is for the purpose of deployment. It will clone the code from github, then build docker images, and eventually spin up containers out of it. 
+# This script is for the purpose of deployment. It will clone the code from github, then build docker images, and eventually spin up containers out of it. Before running this script, please make sure that your system has provision to run docker commands without sudo 
 
 # declare local variables
 
