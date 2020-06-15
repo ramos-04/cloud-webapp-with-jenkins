@@ -6,10 +6,10 @@ The project involves the design and deployment of a website on cloud leveraging 
 This module possesses the application source code of a single page website designed using the Django framework. It can be found at the path 'cloud-project/webserver/django_project'
 
 2. Containerization:
-The Django server is containerized. The Dockerfile can be viewed to dive into details.
+The Django server is containerized. The Dockerfile can be viewed in order to dive into details.
 
 3. Docker installation:
-A script is designed to install docker. If you have a fresh Ubuntu EC2 instance, all you have to do is just run the script 'docker-install.sh'. It takes care of the complete installation of docker on your EC2 instance. 
+A script is designed to install docker. If you have a fresh Ubuntu EC2 instance, all you have to do is just run the script 'docker-install.sh'. It takes care of the complete installation of docker on your instance. 
 
 4. Deployment:
 A script named 'docker-deploy.sh' is created to carry out the below important operations. As of now, these operations are handled using a script, but soon they will be performed using Jenkins. 
