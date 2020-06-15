@@ -14,11 +14,15 @@ A script is designed to install docker. If you have a fresh Ubuntu EC2 instance,
 4. Deployment:
 A script named 'docker-deploy.sh' is created to carry out the below important operations. As of now, these operations are handled using a script, but soon they will be performed using Jenkins. 
 
-          A. Checking out source code from Github
+            A. Checking out source code from Github
       
-          B. Building Docker images from the code
+            B. Building Docker images from the code
     
-          C. Deploy the images to spin up containers
+            C. Deploy the images to spin up containers
+          
+5. Cloudformation:
+It invloves a provision for 'infrastructure as code'. A template is designed to create a stack of AWS resources like EC2 instances, security groups, etc on the fly. 
+
 
 # testing
 A successful testing was carried out on an AWS cloud EC2 instance created from the AMI - ubuntu-bionic-18.04-amd64-server-20200408
