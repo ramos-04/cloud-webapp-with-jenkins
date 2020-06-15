@@ -1,5 +1,5 @@
 
-# This yaml involves configurations to create a cloudformation stack
+# This yaml involves configurations to create an AWS stack of resources using cloudformation
 
 Parameters:
   parameterIPForSSHAccess:
