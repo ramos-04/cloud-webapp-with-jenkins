@@ -24,6 +24,7 @@ Resources:
       KeyName: my-key-pair
       SecurityGroups:
         - !Ref resourceSecurityGroupForSSH
+        - !Ref resourceSecurityGroupForDjangoServer
       Tags: 
         - Key: Name
           Value: Django-EC2Instance
