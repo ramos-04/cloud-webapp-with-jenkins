@@ -21,7 +21,7 @@ A script named 'docker-deploy.sh' is created to carry out the below important op
             C. Deploy the images to spin up containers
           
 5. Cloudformation:
-It invloves a provision for 'infrastructure as code'. A template is designed to create a stack of AWS resources like EC2 instances, security groups, etc on the fly. 
+It involves a provision for 'infrastructure as code'. A template is designed to create a stack of AWS resources like EC2 instances, security groups, etc on the fly. 
 
 
 # testing
