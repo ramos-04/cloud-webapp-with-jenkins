@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script tries to leverage the 'user data' functionality of the EC2 service in AWS cloud. This script will be provided as a user data while launching an EC2 instance. When the EC2 instance will be launched, the script will run during boot time, thus, ultimately installing Django.
+# This script tries to leverage the 'user data' functionality of the EC2 service in AWS cloud. This script will be provided as a user data while launching an EC2 instance. When the EC2 instance will be launched, the script will run during boot time, thus, ultimately installing Django. This script will not be used if we wish to proceed with the containerization platform.
 
 #enable the debug mode
 #set -x
