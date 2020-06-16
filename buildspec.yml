@@ -11,8 +11,13 @@ phases:
         commands:
             - echo "In the build phase"
             - echo "listing the current directory contents"
+            - echo "hello" > hello.txt
             
     post_build:
         commands:
             - echo "In the post_build phase"
+
+artifacts:
+    files:
+        - hello.txt
    
