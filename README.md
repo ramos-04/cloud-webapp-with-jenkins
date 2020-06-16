@@ -33,5 +33,3 @@ A script named 'docker-deploy.sh' is created to carry out the below important op
            A. Checking out source code from Github
            B. Building Docker images from the code
            C. Deploy the images to spin up containers
-# Architecture
-![alt text](https://github.com/ramos-04/cloud-project/blob/master/diagram.png?raw=true)
