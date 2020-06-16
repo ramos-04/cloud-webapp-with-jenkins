@@ -3,8 +3,8 @@ version: 0.2
 phases: 
     install:
         commands:
-            - echo "We can install any software required for the build procedure in this phase. As we already have installed Docker using the userdata attribute of EC2 service, so we won't be installing anything here"
-
+            - echo "We can install any software required for the build procedure in this phase. As we'll be building docker images, the required configuration to support docker is already performed in the Environment configuration of the CodeBuild project"
+            
     build:
         commands:
             - echo "In the build phase"
@@ -22,5 +22,5 @@ phases:
 
 artifacts:
     files:
-        - python-django-server-img.tar
+        - webserver/python-django-server-img.tar
    
