@@ -3,21 +3,24 @@ version: 0.2
 phases: 
     install:
         commands:
-            - echo "We can install any softwares required for the build procedure in this phase. As we already have installed Docker using the userdata attribute of EC2 service so we won't be installing anything here"
-    pre_build:
-        commands: 
-            - echo "In the pre_build phase"
+            - echo "We can install any software required for the build procedure in this phase. As we already have installed Docker using the userdata attribute of EC2 service, so we won't be installing anything here"
+
     build:
         commands:
             - echo "In the build phase"
-            - echo "listing the current directory contents"
-            - echo "hello" > hello.txt
+            - cd webserver
+            - echo "building the python docker image"
+            - docker build -t python-django-server-img .
+            - echo "listing docker images: "
+            - docker images
             
     post_build:
         commands:
             - echo "In the post_build phase"
+            - echo "saving a docker image to a tar file"
+            - docker save -o python-django-server-img.tar python-django-server-img
 
 artifacts:
     files:
-        - hello.txt
+        - python-django-server-img.tar
    
