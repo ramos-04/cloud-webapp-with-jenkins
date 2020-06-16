@@ -11,7 +11,7 @@ The Django server is containerized. The Dockerfile can be viewed in order to div
 3. Cloudformation:
 It involves a provision for 'infrastructure as code'. A template is designed to create a stack of AWS resources on the fly. The stack will include the following resources -
 
-           A. EC2 instance with Docker software installed (configuring the 'docker-install.sh' script as userdata)
+           A. EC2 instance with Docker software installed (configured the 'docker-install.sh' script as userdata)
            B. Security group for SSH access
            C. Security group for Django web server access
            
