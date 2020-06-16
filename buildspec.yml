@@ -1,0 +1,18 @@
+version: 0.2
+
+phases: 
+    install:
+        commands:
+            - echo "We can install any softwares required for the build procedure in this phase. As we already have installed Docker using the userdata attribute of EC2 service so we won't be installing anything here"
+    pre_build:
+        commands: 
+            - echo "In the pre_build phase"
+    build:
+        commands:
+            - echo "In the build phase"
+            - echo "listing the current directory contents"
+            
+    post_build:
+        commands:
+            - echo "In the post_build phase"
+   
