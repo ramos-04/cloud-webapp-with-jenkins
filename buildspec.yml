@@ -11,7 +11,7 @@ phases:
             - cd webserver
             - echo "building the python docker image"
             - docker build -t python-django-server-img .
-            - echo "listing docker images: "
+            - echo "listing docker images"
             - docker images
             
     post_build:
