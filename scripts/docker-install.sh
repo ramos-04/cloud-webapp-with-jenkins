@@ -1,6 +1,5 @@
 #!/bin/bash
-
-# This script is used to install docker on Linux ubuntu 
+# This script tries to leverage the 'userdata' functionality of the EC2 service in AWS cloud. When the EC2 instance will be launched, this script will run during the boot time, thus, ultimately installing Docker and a CodeDeploy agent.
 
 # If any command returns a non-zero(error) status, then it could be caught and the script execution can be terminated immediately
 set -e
@@ -44,3 +43,21 @@ apt install -y docker-ce
 
 # validating the installation of docker by checking the version
 docker version
+
+# installing ruby as it is required for the functioning of the codedeploy agent
+apt-get install -y ruby
+
+# installing the codedeploy agent. Replace the AWS Region as per your environment.
+wget https://aws-codedeploy-ap-south-1.s3.ap-south-1.amazonaws.com/latest/install
+
+# allocating executable permissions to the script
+chmod +x ./install
+
+./install auto
+
+service codedeploy-agent start
+
+# checking the status of the codedeploy agent
+service codedeploy-agent status
+
+
