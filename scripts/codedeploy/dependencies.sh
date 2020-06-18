@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #IMAGE_NAME=python-django-server-img
-FILE_PATH=~/python-django-server-img.tar
+FILE_PATH=~/docker/python-django-server-img.tar
 #GITHUB_URL=https://github.com/ramos-04/cloud-project.git
 
 #apt-get update
@@ -22,6 +22,10 @@ pwd
 
 echo "listing the current directory contents"
 ls
+
+echo "listing the home directory contents"
+ls ~/
+
 
 echo "loading the docker image from a tar file"
 docker load --input $FILE_PATH
