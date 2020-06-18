@@ -45,19 +45,24 @@ apt install -y docker-ce
 docker version
 
 # installing ruby as it is required for the functioning of the codedeploy agent
+echo "installing ruby"
 apt-get install -y ruby
 
 # installing the codedeploy agent. Replace the AWS Region as per your environment.
+echo "downloading codedeploy agent"
 wget https://aws-codedeploy-ap-south-1.s3.ap-south-1.amazonaws.com/latest/install
 
 # allocating executable permissions to the script
+echo "providing executable permissions to the script"
 chmod +x ./install
 
+echo "installing codedeploy agent"
 ./install auto
 
 service codedeploy-agent start
 
 # checking the status of the codedeploy agent
+echo "checking the status of the codedeploy agent"
 service codedeploy-agent status
 
 
