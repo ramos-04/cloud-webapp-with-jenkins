@@ -26,7 +26,7 @@ echo "Username is $(whoami)"
 # update the packages
 apt update -y
 
-# installing some prerequisites which let 'apt' use packages over HTTPS
+# installing certain prerequisites which let 'apt' use packages over HTTPS
 apt install -y apt-transport-https ca-certificates curl software-properties-common
 
 # adding the GPG key for the official docker repository to our system
