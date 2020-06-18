@@ -4,19 +4,19 @@ os: linux
 hooks:
  
   AfterInstall:
-    - location: scripts/codedeploy/dependencies.sh
+    - location: dependencies.sh
       timeout: 300
       runas: root
   ApplicationStart:
-    - location: scripts/codedeploy/start.sh
+    - location: start.sh
       timeout: 300
       runas: root
   ApplicationStop:
-    - location: scripts/codedeploy/stop.sh
+    - location: stop.sh
       timeout: 300
       runas: root
   ValidateService:
-    - location: scripts/codedeploy/validate.sh
+    - location: validate.sh
       timeout: 300
       runas: root
 

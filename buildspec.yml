@@ -8,20 +8,24 @@ phases:
     build:
         commands:
             - echo "In the build phase"
-#            - cd webserver
-#            - echo "building the python docker image"
-#            - docker build -t python-django-server-img .
-#            - echo "listing docker images"
-#            - docker images
+            - cd webserver
+            - echo "building the python docker image"
+            - docker build -t python-django-server-img .
+            - echo "listing docker images"
+            - docker images
             
     post_build:
         commands:
             - echo "In the post_build phase"
-#            - echo "saving a docker image to a tar file"
-#            - docker save -o python-django-server-img.tar python-django-server-img
+            - echo "saving the docker image to a tar file"
+            - docker save -o python-django-server-img.tar python-django-server-img
 
 artifacts:
     files:
-#        - webserver/python-django-server-img.tar
+        - webserver/python-django-server-img.tar
         - appspec.yml
-        - scripts/codedeploy/*   
+        - scripts/codedeploy/dependencies.sh  
+        - scripts/codedeploy/start.sh
+        - scripts/codedeploy/stop.sh
+        - scripts/codedeploy/validate.sh
+       
