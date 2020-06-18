@@ -24,8 +24,6 @@ artifacts:
     files:
         - webserver/python-django-server-img.tar
         - appspec.yml
-        - scripts/codedeploy/dependencies.sh  
-        - scripts/codedeploy/start.sh
-        - scripts/codedeploy/stop.sh
-        - scripts/codedeploy/validate.sh
+        - scripts/codedeploy/*  
+
        
