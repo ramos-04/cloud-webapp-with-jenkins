@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #IMAGE_NAME=python-django-server-img
-FILE_PATH=webserver/python-django-server-img.tar
+FILE_PATH=~/python-django-server-img.tar
 #GITHUB_URL=https://github.com/ramos-04/cloud-project.git
 
 #apt-get update

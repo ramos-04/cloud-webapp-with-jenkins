@@ -1,6 +1,10 @@
 version: 0.0
 os: linux
 
+files:
+  - source: webserver/python-django-server-img.tar
+    destination: ~
+
 hooks:
  
   AfterInstall:
