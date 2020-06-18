@@ -3,7 +3,7 @@ os: linux
 
 files:
   - source: webserver/python-django-server-img.tar
-    destination: ~/docker
+    destination: /opt/docker-image
 
 hooks:
  
