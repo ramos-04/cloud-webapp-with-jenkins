@@ -7,8 +7,8 @@ Parameters:
     Type: String
     Default: 0.0.0.0/0
 
-  parameterIPForServerAccess:
-    Description: Enter the IP address(or range) of the HTTP clients which can hit the Django webserver. This is to add a layer of security by limiting HTTP access to a specific number of clients. Failing to configure this parameter, a client with any IP address can access the server
+  parameterIPForLoadBalancerAccess:
+    Description: Enter the IP address(or range) of the HTTP clients which can hit the Application Load Balancer(ALB). This is to add a layer of security by limiting HTTP access to a specific number of clients. Failing to configure this parameter, a client with any IP address can access the ALB.
     Type: String
     Default: 0.0.0.0/0
     
@@ -32,8 +32,7 @@ Resources:
       KeyName: !Ref parameterSSHKeyPair
       UserData: !Ref parameterUserData
       SecurityGroups:
-        - !Ref resourceSecurityGroupForSSH
-        - !Ref resourceSecurityGroupForDjangoServer
+        - !Ref resourceSecurityGroupForEC2
       IamInstanceProfile : !Ref resourceEC2InstanceProfile
       Tags: 
         - Key: Name
@@ -42,28 +41,30 @@ Resources:
           Value: codedeploy
 
 
-# security group to enable ssh access 
-  resourceSecurityGroupForSSH:
+# security group for the EC2 instance. Allows traffic on port 8080 only from the load balancer. Allows ssh access to defined clients on port 22 
+  resourceSecurityGroupForEC2:
     Type: AWS::EC2::SecurityGroup
     Properties:
-     GroupDescription: Configure SSH access to the EC2 instance
+     GroupDescription: Allows traffic on port 8080 only from the Application Load Balancer(ALB). Allows ssh access to defined clients on port 22
      SecurityGroupIngress:
+     - CidrIp: !Ref resourceSecurityGroupForLoadBalancer
+       IpProtocol: tcp
+       FromPort: 8080
+       ToPort: 8080
      - CidrIp: !Ref parameterIPForSSHAccess
        IpProtocol: tcp
        FromPort: 22
        ToPort: 22
 
-
-# security group to access the Django webserver 
-  resourceSecurityGroupForDjangoServer:
+  resourceSecurityGroupForLoadBalancer:
     Type: AWS::EC2::SecurityGroup
     Properties:
-     GroupDescription: Configure access to the Django webserver
+     GroupDescription: Allows traffic on port 80 from the defined clients
      SecurityGroupIngress:
-     - CidrIp: !Ref parameterIPForServerAccess
+     - CidrIp: !Ref parameterIPForLoadBalancerAccess
        IpProtocol: tcp
-       FromPort: 8080
-       ToPort: 8080
+       FromPort: 80
+       ToPort: 80
 
 
 # IAM role for EC2 to gain S3 read-only access. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
