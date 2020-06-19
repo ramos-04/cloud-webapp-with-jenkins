@@ -14,6 +14,7 @@ It involves a provision for 'infrastructure as code'. A template is designed to 
            A. EC2 instance with Docker software and CodeDeploy agent installed (configured the 'ec2-userdata.sh' script as userdata)
            B. Security group for SSH access
            C. Security group for Django web server access
+           D. IAM role and an instance profile for EC2 to gain S3 read permissions. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
 
 4. CI/CD Pipeline:
 AWS service CodePipeline is used to implement a CI/CD pipeline in cloud to expedite operations like build, test, deploy, etc. It comprises of three stages. The first stage involves the source code repository. In our case, we're using GitHub, however, it can be replaced with AWS CodeCommit, etc. During this stage, the latest source code will be checked out and stored as an artifact(source code artifact) in the S3 bucket. The next stage is the build stage represented by AWS CodeBuild service where the previously stored artifact will be taken as an input and a docker image will be built out of it. Thus, this will give rise to a new artifact called the build artifact which will be stored back to the S3 bucket. We can store the newly built docker image in Elastic Container Registry(ECR), however, I avoided the same, just in order to play around a bit. In the last stage, the build artifact will be deployed in the EC2 instance using the AWS CodeDeploy service. After a successful deployment, we'll able to access our website. 
