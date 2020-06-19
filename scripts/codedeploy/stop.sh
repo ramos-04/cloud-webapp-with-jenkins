@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#This script stops and removes all the docker containers. Also, it deletes all the docker images
+
 echo "stopping all the containers"
 
 docker stop $(docker ps -a -q)
