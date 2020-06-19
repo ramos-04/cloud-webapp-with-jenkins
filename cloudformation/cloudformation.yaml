@@ -34,9 +34,12 @@ Resources:
       SecurityGroups:
         - !Ref resourceSecurityGroupForSSH
         - !Ref resourceSecurityGroupForDjangoServer
+      IamInstanceProfile : !Ref resourceEC2InstanceProfile
       Tags: 
         - Key: Name
           Value: Django-EC2Instance
+        - Key: Name
+          Value: codedeploy
 
 
 # security group to enable ssh access 
@@ -61,4 +64,35 @@ Resources:
        IpProtocol: tcp
        FromPort: 8080
        ToPort: 8080
+
+
+# IAM role for EC2 to gain S3 read-only access. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
+  resourceEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess   
+
+
+# Instance profile for EC2. It acts as a container for the role
+  resourceEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref resourceEC2Role        
+   
+
+
+
+
+
 
