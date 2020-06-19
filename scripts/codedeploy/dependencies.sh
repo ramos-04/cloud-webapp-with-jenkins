@@ -1,5 +1,7 @@
 #!/bin/bash
 
+#This script is used to extract/load the docker image out of a tar package.  
+
 #IMAGE_NAME=python-django-server-img
 FILE_PATH=/opt/docker-image/python-django-server-img.tar
 #GITHUB_URL=https://github.com/ramos-04/cloud-project.git
