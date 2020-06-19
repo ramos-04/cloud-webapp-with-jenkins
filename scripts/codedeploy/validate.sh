@@ -1,7 +1,7 @@
 #!/bin/bash
+#This script validates whether the docker container possessing the Django app is running or not
 
 CONTAINER_NAME=python-django-server-container
-
 
 echo "validating whether the container is running"
 
