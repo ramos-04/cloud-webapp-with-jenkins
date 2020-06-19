@@ -23,7 +23,7 @@ AWS service CodePipeline is used to implement a CI/CD pipeline in cloud to exped
    ![alt text](https://github.com/ramos-04/cloud-project/blob/master/images/AWS-CICD-Pipeline.png)
 
 # Testing
-Successful testing was carried out on an AWS cloud EC2 instance created from the AMI - ubuntu-bionic-18.04-amd64-server-20200408
+Successful testing has been carried out. EC2 instance AMI used - ubuntu-bionic-18.04-amd64-server-20200408
 
 # Others
 The below standalone entities can be used if you don't wish to follow the CI/CD pipeline.
