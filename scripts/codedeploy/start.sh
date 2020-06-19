@@ -1,8 +1,8 @@
 #!/bin/bash
+#This script start the docker container which holds the python Django application ,thus, ultimately, spinning up the web server
 
 IMAGE_NAME=python-django-server-img
 CONTAINER_NAME=python-django-server-container
-
 
 echo "running the docker container"
 
