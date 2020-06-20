@@ -114,7 +114,7 @@ Resources:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckIntervalSeconds: 25
-      HealthCheckPath: '/travel'
+      HealthCheckPath: '/user/healthcheck'
       HealthCheckProtocol: HTTP
       HealthCheckTimeoutSeconds: 10
       HealthyThresholdCount: 4
