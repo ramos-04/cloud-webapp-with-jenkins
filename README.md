@@ -32,7 +32,7 @@ In order to set up and configure all the AWS resources, we'll need to hit 100 cl
            B. Security group for the EC2 instance to allow HTTP traffic only from the ALB and SSH traffic only from a predefined set of clients. 
            C. Security group for ALB to permit access only for a predefined set of clients.
            D. IAM role and an Instance Profile for the EC2 instance to gain S3 read permissions. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
-           E. An Application Load Balancer
+           E. Application Load Balancer
            
 # Testing
 Successful testing has been carried out using the EC2 instance AMI - ubuntu-bionic-18.04-amd64-server-20200408
