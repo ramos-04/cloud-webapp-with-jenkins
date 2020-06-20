@@ -21,6 +21,15 @@ Parameters:
     Type: String
     Default: my-key-pair
 
+  parameterVPCID:
+    Description: Enter the ID of the VPC present in your AWS network   
+    Type: String
+
+  parameterSubnetsForLoadBalancer:
+    Description: Enter the subnet IDs you want the load balancer to route the traffic to. You can specify only one subnet per Availability Zone. You must specify subnets from at least two Availability Zones to increase the availability of your load balancer.  
+    Type: CommaDelimitedList
+
+
 # create an EC2 instance 
 Resources:
   resourceEC2:
@@ -47,7 +56,7 @@ Resources:
     Properties:
      GroupDescription: Allows traffic on port 8080 only from the Application Load Balancer(ALB). Allows ssh access to defined clients on port 22
      SecurityGroupIngress:
-     - CidrIp: !Ref resourceSecurityGroupForLoadBalancer
+     - SourceSecurityGroupName: !Ref resourceSecurityGroupForLoadBalancer
        IpProtocol: tcp
        FromPort: 8080
        ToPort: 8080
@@ -90,10 +99,44 @@ Resources:
     Properties:
       Roles:
         - !Ref resourceEC2Role        
-   
+
+# create an Application Load Balancer
+  resourceApplicationLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets: !Ref parameterSubnetsForLoadBalancer
+      SecurityGroups:
+       - !GetAtt resourceSecurityGroupForLoadBalancer.GroupId
 
 
+# target group for a looad balancer
+  resourceTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      HealthCheckIntervalSeconds: 25
+      HealthCheckPath: '/travel'
+      HealthCheckProtocol: HTTP
+      HealthCheckTimeoutSeconds: 10
+      HealthyThresholdCount: 4
+      UnhealthyThresholdCount: 4
+      Matcher:
+        HttpCode: '200'
+      Port: 8080
+      Protocol: HTTP
+      VpcId: !Ref parameterVPCID 
+      TargetType: instance
+      Targets:
+        - Id: !Ref resourceEC2
+          Port: 8080
 
 
-
-
+# Listener for the Application Load Balancer
+  resourceALBListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+      - TargetGroupArn: !Ref resourceTargetGroup
+        Type: forward
+      LoadBalancerArn: !Ref resourceApplicationLoadBalancer
+      Port: 80
+      Protocol: HTTP
