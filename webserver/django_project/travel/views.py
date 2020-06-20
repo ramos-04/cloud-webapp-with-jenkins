@@ -10,6 +10,11 @@ from django.template import Context, loader
 
 
 def index(request):
-    print('HTTP request is received')
+    print('HTTP API travel')
     print('request.META')
     return render(request, 'index.html')
+
+def healthcheck(request):
+    print('HTTP API healthcheck')
+    print('request.META')
+    return HttpResponse("I am healthy!!!")
