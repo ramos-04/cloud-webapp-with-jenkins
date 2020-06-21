@@ -8,7 +8,7 @@ Parameters:
     Default: 0.0.0.0/0
 
   parameterIPForLoadBalancerAccess:
-    Description: Enter the IP address(or range) of the HTTP clients which can hit the Application Load Balancer(ALB). This is to add a layer of security by limiting HTTP access to a specific number of clients. Failing to configure this parameter, a client with any IP address can access the ALB.
+    Description: Enter the IP address(or range) of the HTTPS clients which can hit the Application Load Balancer(ALB). This is to add a layer of security by limiting HTTPS access to a specific number of clients. Failing to configure this parameter, a client with any IP address can access the ALB.
     Type: String
     Default: 0.0.0.0/0
     
@@ -28,6 +28,10 @@ Parameters:
   parameterSubnetsForLoadBalancer:
     Description: Enter the subnet IDs you want the load balancer to route the traffic to. You can specify only one subnet per Availability Zone. You must specify subnets from at least two Availability Zones to increase the availability of your load balancer.  
     Type: CommaDelimitedList
+
+  parameterTLSCertificateARN:
+    Description: Enter the TLS certificate ARN
+    Type: String
 
 
 # create an EC2 instance 
@@ -68,12 +72,12 @@ Resources:
   resourceSecurityGroupForLoadBalancer:
     Type: AWS::EC2::SecurityGroup
     Properties:
-     GroupDescription: Allows traffic on port 80 from the defined clients
+     GroupDescription: Allows traffic on port 443 from the defined clients
      SecurityGroupIngress:
      - CidrIp: !Ref parameterIPForLoadBalancerAccess
        IpProtocol: tcp
-       FromPort: 80
-       ToPort: 80
+       FromPort: 443
+       ToPort: 443
 
 
 # IAM role for EC2 to gain S3 read-only access. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
@@ -131,12 +135,29 @@ Resources:
 
 
 # Listener for the Application Load Balancer
-  resourceALBListener:
+#  resourceALBListener:
+#    Type: AWS::ElasticLoadBalancingV2::Listener
+#    Properties:
+#      DefaultActions:
+#      - TargetGroupArn: !Ref resourceTargetGroup
+#        Type: forward
+#      LoadBalancerArn: !Ref resourceApplicationLoadBalancer
+#      Port: 80
+#      Protocol: HTTP
+
+
+# TLS secured Listener for the Application Load Balancer
+  resourceHTTPSALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
+      Certificates:
+      - CertificateArn: !Ref parameterTLSCertificateARN
       DefaultActions:
       - TargetGroupArn: !Ref resourceTargetGroup
         Type: forward
       LoadBalancerArn: !Ref resourceApplicationLoadBalancer
-      Port: 80
-      Protocol: HTTP
+      Port: 443
+      Protocol: HTTPS
+
+
+
