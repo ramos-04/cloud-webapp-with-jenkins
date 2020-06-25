@@ -37,6 +37,10 @@ In order to set up and configure all the AWS resources, we'll need to hit 100 cl
            D. IAM role and an Instance Profile for the EC2 instance to gain S3 read permissions. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
            E. TLS secured Application Load Balancer
            
+7. Monitoring:
+AWS CloudWatch is used for monitoring purposes. The logs generated during various operations of the CI/CD pipeline are stored in CloudWatch. It becomes handy while troubleshooting issues.
+
+           
 # Testing
 Successful testing has been carried out using the EC2 instance AMI - ubuntu-bionic-18.04-amd64-server-20200408
 
