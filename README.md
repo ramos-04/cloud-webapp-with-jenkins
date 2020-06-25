@@ -29,15 +29,31 @@ AWS service CodePipeline is used to implement a CI/CD pipeline in the cloud to e
 
 
 6. Cloudformation:
-In order to set up and configure all the AWS resources, we'll need to hit 100 clicks on the AWS console. Furthermore, if we wish to repeat the setup on a different AWS account, then the manual procedure needs to be reiterated. Wouldn't it be cool if we automate this complete job? Well, the automation is carried out using the AWS Cloudformation service acting as 'Infrastructure as Code'. A template is designed to create the following stack of resources on the fly.
+In order to set up and configure all the AWS resources, we'll need to hit 100 clicks on the AWS console. Furthermore, if we wish to repeat the same setup on a different AWS account, then the manual procedure needs to be reiterated. Wouldn't it be cool if we automate this complete job? Well, the automation is carried out using the AWS Cloudformation service acting as 'Infrastructure as Code'. A template is designed to create the following stack of resources on the fly.
 
            A. EC2 instance with Docker software and CodeDeploy agent installed (configured the 'ec2-userdata.sh' script as userdata)
            B. Security group for the EC2 instance to allow HTTP traffic only from the ALB and SSH traffic only from a predefined set of clients. 
            C. Security group for ALB to permit access only for a predefined set of clients.
            D. IAM role and an Instance Profile for the EC2 instance to gain S3 read permissions. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
            E. TLS secured Application Load Balancer
+           F. CodeBuild project
+           G. CodeDeploy project
+           H. CodePipeline
            
-7. Monitoring:
+7. Complete Automation:
+As afore-discussed, Cloudformation has played a significant role in achieving complete automation. Now. we just have to run a single command. And that's it!!! Our website will be up. The following sequence of operations will occur automatically after running the command-
+
+          A. The complete infrastructure will be provisioned(creation of all the required AWS resources)
+          B. A CI/CD Pipeline will be created and triggered
+          C. Latest source code from the repository will be checked out
+          D. It will be built to create artifacts
+          E. And finally, the artifacts will be deployed on an EC2 instance
+          F. The website is live
+          
+Also, if you wish to bring down everything, then again, you just require a single command.
+           
+           
+8. Monitoring:
 AWS CloudWatch is used for monitoring purposes. The logs generated during various operations of the CI/CD pipeline are stored in CloudWatch. It becomes handy while troubleshooting issues.
 
            
