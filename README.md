@@ -36,9 +36,9 @@ In order to set up and configure all the AWS resources, we'll need to hit 100 cl
            C. Security group for ALB to permit access only for a predefined set of clients.
            D. IAM role and an Instance Profile for the EC2 instance to gain S3 read permissions. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
            E. TLS secured Application Load Balancer
-           F. CodeBuild project
-           G. CodeDeploy project
-           H. CodePipeline
+           F. CodeBuild project with required IAM roles
+           G. CodeDeploy project with required IAM roles
+           H. CodePipeline with required IAM roles
            
 7. Complete Automation:
 As afore-discussed, Cloudformation has played a significant role in achieving complete automation. Now. we just have to run a single command. And that's it!!! Our website will be up. The following sequence of operations will occur automatically after running the command-
@@ -54,7 +54,7 @@ Also, if you wish to bring down everything, then again, you just require a singl
            
            
 8. Monitoring:
-AWS CloudWatch is used for monitoring purposes. The logs generated during various operations of the CI/CD pipeline are stored in CloudWatch. It becomes handy while troubleshooting issues.
+AWS CloudWatch is used for monitoring purposes. The logs generated during various operations of the CI/CD pipeline are stored in CloudWatch. If the pipeline happens to fail, we can immediately access the logs for troubleshooting purposes.
 
            
 # Testing
