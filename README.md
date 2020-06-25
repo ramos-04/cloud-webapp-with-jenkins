@@ -41,7 +41,7 @@ In order to set up and configure all the AWS resources, we'll need to hit 100 cl
            H. CodePipeline with required IAM roles
            
 8. Complete Automation:
-As afore-discussed, Cloudformation has played a significant role in achieving complete automation. Now. we just have to run a single command. And that's it!!! Our website will be up. The following sequence of operations will occur automatically after running the command-
+As afore-discussed, Cloudformation has played a significant role in achieving complete automation. Now. we just have to run a single aws command(create-stack). And that's it!!! Our website will be up. The following sequence of operations will occur automatically after running the command-
 
           A. The complete infrastructure will be provisioned(creation of all the required AWS resources)
           B. A CI/CD Pipeline will be created and triggered
