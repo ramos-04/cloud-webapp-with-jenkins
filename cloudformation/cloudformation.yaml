@@ -33,6 +33,9 @@ Parameters:
     Description: Enter the TLS certificate ARN
     Type: String
 
+  parameterGitHubToken:
+    Description: Enter the Github token which will provide repository access permissions to CodePipeline 
+    Type: String
 
 # create an EC2 instance 
 Resources:
@@ -134,18 +137,6 @@ Resources:
           Port: 8080
 
 
-# Listener for the Application Load Balancer
-#  resourceALBListener:
-#    Type: AWS::ElasticLoadBalancingV2::Listener
-#    Properties:
-#      DefaultActions:
-#      - TargetGroupArn: !Ref resourceTargetGroup
-#        Type: forward
-#      LoadBalancerArn: !Ref resourceApplicationLoadBalancer
-#      Port: 80
-#      Protocol: HTTP
-
-
 # TLS secured Listener for the Application Load Balancer
   resourceHTTPSALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -158,6 +149,122 @@ Resources:
       LoadBalancerArn: !Ref resourceApplicationLoadBalancer
       Port: 443
       Protocol: HTTPS
+
+
+# create a S3 bucket to store the artifacts of CodePipeline operations
+  resourceArtifactsS3Bucket:
+    DeletionPolicy: Retain
+    Type: AWS::S3::Bucket
+
+
+# create a service role for CodeBuild
+  resourceCodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'codebuild.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
+        - arn:aws:iam::aws:policy/CloudWatchFullAccess
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+
+# create a service role for CodePipeline
+  resourceCodePipelineRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'codepipeline.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AWSCodePipelineFullAccess
+      - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
+      - arn:aws:iam::aws:policy/AmazonS3FullAccess
+
+
+# create a CodeBuild project
+  resourceCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        ComputeType: 'BUILD_GENERAL1_SMALL'
+        Image: 'aws/codebuild/standard:4.0'
+        Type: 'LINUX_CONTAINER'
+        PrivilegedMode: 'true'
+      Name: my-codebuild-project
+      ServiceRole: !GetAtt resourceCodeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 10
+
+
+# create a CodePipeline
+  resourceCodePipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn: !GetAtt resourceCodePipelineRole.Arn  
+      ArtifactStore:
+        Type: S3
+        Location: !Ref resourceArtifactsS3Bucket
+      Name: my-codepipeline
+      DisableInboundStageTransitions: 
+          - Reason: 'Disabling to save some coldbuild minutes'
+            StageName: Build
+
+      Stages:
+        - Name: Source
+          Actions:
+            - Name: ApplicationSource
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              Configuration:
+                  Owner: ramos-04
+                  Repo: cloud-project
+                  PollForSourceChanges: 'false'
+                  Branch: master
+                  OAuthToken: !Ref parameterGitHubToken
+              OutputArtifacts:
+                  - Name: SourceArtifact
+
+        - Name: Build
+          Actions:
+            - Name: ApplicationBuild
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                  ProjectName: !Ref resourceCodeBuildProject
+              InputArtifacts:
+                  - Name: SourceArtifact
+              OutputArtifacts:
+                  - Name: BuildArtifact
+
+
+
+
+
+
+
 
 
 
