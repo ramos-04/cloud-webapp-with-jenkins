@@ -1,5 +1,5 @@
 # Cloud-Project
-The project involves the design and deployment of a website on cloud leveraging different features of AWS.
+The project involves the design and deployment of a website on the cloud leveraging different features of AWS.
 
 # Modules
 1. Architecture:
