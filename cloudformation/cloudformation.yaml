@@ -54,7 +54,7 @@ Resources:
         - Key: Name
           Value: Django-EC2Instance
         - Key: Name
-          Value: codedeploy
+          Value: CodeDeploy
 
 
 # security group for the EC2 instance. Allows traffic on port 8080 only from the load balancer. Allows ssh access to defined clients on port 22 
@@ -153,7 +153,7 @@ Resources:
 
 # create a S3 bucket to store the artifacts of CodePipeline operations
   resourceArtifactsS3Bucket:
-    DeletionPolicy: Retain
+#   DeletionPolicy: Retain
     Type: AWS::S3::Bucket
 
 
@@ -176,6 +176,23 @@ Resources:
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
 
+# create a service role for CodeDeploy
+  resourceCodeDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'codedeploy.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+
+
 # create a service role for CodePipeline
   resourceCodePipelineRole:
     Type: AWS::IAM::Role
@@ -192,6 +209,7 @@ Resources:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AWSCodePipelineFullAccess
       - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
+      - arn:aws:iam::aws:policy/AWSCodeDeployFullAccess
       - arn:aws:iam::aws:policy/AmazonS3FullAccess
 
 
@@ -211,6 +229,24 @@ Resources:
       Source:
         Type: CODEPIPELINE
       TimeoutInMinutes: 10
+
+
+# create a codedeploy application
+  resourceCodeDeployApplication:
+    Type: AWS::CodeDeploy::Application
+
+
+# create a codedeploy deployment group
+  resourceDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref resourceCodeDeployApplication
+      ServiceRoleArn: !GetAtt resourceCodeDeployRole.Arn
+      DeploymentConfigName: CodeDeployDefault.AllAtOnce
+      Ec2TagFilters:  
+        - Key: Name
+          Type: KEY_AND_VALUE
+          Value: CodeDeploy
 
 
 # create a CodePipeline
@@ -259,7 +295,25 @@ Resources:
               OutputArtifacts:
                   - Name: BuildArtifact
 
+        - Name: Deploy
+          Actions:
+            - Name: ApplicationDeploy
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: CodeDeploy
+              Configuration:
+                  ApplicationName: !Ref resourceCodeDeployApplication
+                  DeploymentGroupName: !Ref resourceDeploymentGroup
+              InputArtifacts:
+                  - Name: BuildArtifact
 
+
+Outputs:
+  resourceWebsiteURL:
+    Description: Website URL
+    Value: !Join [ "/", [ https:/, !GetAtt resourceApplicationLoadBalancer.DNSName, user, travel ] ]
 
 
 
