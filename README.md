@@ -48,7 +48,7 @@ As afore-discussed, Cloudformation has played a significant role in achieving co
           C. Latest source code from the repository will be checked out
           D. It will be built to create artifacts
           E. And finally, the artifacts will be deployed on an EC2 instance
-          F. The website is live
+          F. The website is live. It's URL will be displayed in the Outputs section of the Clouformation service
           
 Also, if you wish to bring down everything, then again, you just require a single command.
            
