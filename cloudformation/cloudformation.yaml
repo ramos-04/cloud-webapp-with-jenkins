@@ -309,11 +309,70 @@ Resources:
               InputArtifacts:
                   - Name: BuildArtifact
 
+# create a service role for AWS Lambda
+  resourceLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'lambda.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AWSCodePipelineFullAccess
+      - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
+# create a Lambda function
+  resourceLambda: 
+    Type: AWS::Lambda::Function
+    Properties: 
+      Handler: "index.handler"
+      Role: !GetAtt resourceLambdaRole.Arn
+
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+
+          clientCodePipeline = boto3.client('codepipeline')
+
+          def handler(event, context):
+    
+               retListPipelines = clientCodePipeline.list_pipelines()
+               print('\nListing pipelines:')
+               print(retListPipelines)
+    
+               pipelineName = retListPipelines['pipelines'][0]['name']
+               print('\nPipeline name:' + pipelineName)
+    
+               retPipelineExec = clientCodePipeline.start_pipeline_execution(name=pipelineName)
+               print('\nstart_pipeline_execution response: ')
+               print(retPipelineExec)
+   
+               pipelineExecID = retPipelineExec['pipelineExecutionId']
+               print('\npipelineExecutionId:' + pipelineExecID)
+
+               jsonData = {
+                            "pipelineExecutionId": pipelineExecID
+                          }
+
+               return {
+                'statusCode': 200,
+                'body': json.dumps(jsonData)   
+               }
+          
+      Runtime: "python3.6"
+      Timeout: 10
+
 
 Outputs:
   resourceWebsiteURL:
     Description: Website URL
-    Value: !Join [ "/", [ https:/, !GetAtt resourceApplicationLoadBalancer.DNSName, user, travel ] ]
+    Value: !Join [ "/", [ 'https:/', !GetAtt resourceApplicationLoadBalancer.DNSName, user, travel ] ]
 
 
 
