@@ -368,11 +368,78 @@ Resources:
       Runtime: "python3.6"
       Timeout: 10
 
+# create a REST API in API Gateway
+  resourceRootAPIGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: my-apigateway
+      Description: Gateway to expose REST APIs
+
+# create a resource in API Gateway
+  resourceFirstAPIGateway:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref resourceRootAPIGateway
+      ParentId: !GetAtt 
+        - resourceRootAPIGateway
+        - RootResourceId
+      PathPart: startpipeline
+
+
+# create a METHOD in API Gateway
+  resourceMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      HttpMethod: POST
+      Integration:
+        IntegrationHttpMethod: POST
+        Credentials: !GetAtt resourceRoleAPIGateway.Arn
+        Type: AWS_PROXY
+        Uri: !Sub
+          - "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${lambdaArn}/invocations"
+          - lambdaArn: !GetAtt "resourceLambda.Arn"
+      AuthorizationType: NONE
+      ResourceId: !Ref resourceFirstAPIGateway
+      RestApiId: !Ref resourceRootAPIGateway
+
+
+# create a deployment in API Gateway
+  resourceDeploymentAPIGateway:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - resourceMethod
+    Properties:
+      RestApiId: !Ref resourceRootAPIGateway
+      StageName: dev
+
+
+# create a service role for API Gateway
+  resourceRoleAPIGateway:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'apigateway.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/AWSLambdaFullAccess
+
+
 
 Outputs:
   resourceWebsiteURL:
-    Description: Website URL
+    Description: URL to access the Django website through ALB
     Value: !Join [ "/", [ 'https:/', !GetAtt resourceApplicationLoadBalancer.DNSName, user, travel ] ]
+
+  resourceTriggerPipelineURL:
+    Description: URL to trigger the startpipeline REST API through API Gateway
+    Value: !Sub "https://${resourceRootAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/dev/startpipeline"
+
 
 
 
