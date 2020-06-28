@@ -58,7 +58,10 @@ We can implement security(SSL/TLS) in the application in order to make it secure
 11. Security Groups:
 They are acting as firewalls, filtering the traffic. One security group is sitting on top of the ALB permitting access to only a specific set of clients. This set of clients can be configured by the user through 'Parameters' in AWS Cloudformation. A second security group is attached to the EC2 instance which enables HTTP traffic only from the load balancer and SSH traffic only from a specific set of clients. 
 
-12. Monitoring:
+12. Authentication and Authorization in API Gateway using Cognito:
+A user pool is created in AWS Cognito using which external users can sign up and sign in. JSON Web Tokens(JWT) can be fetched from the pool, thus, limiting only authenticated users to trigger the CI/CD pipeline. 
+
+13. Monitoring:
 AWS CloudWatch is used for monitoring purposes. The logs generated during various certain operations are stored in CloudWatch. If any failure is encountered, we can immediately access the logs for troubleshooting purposes.
 
 
