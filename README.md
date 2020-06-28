@@ -53,13 +53,13 @@ As afore-discussed, Cloudformation has played a significant role in achieving co
 Also, if you wish to bring down everything, then again, you just require a single command. This automation plays an important role in saving huge costs during the development phase as a developer can create a new stack every morning and delete it at the end of the day.
          
 10. SSL/TLS termination at the infrastructure level:
-We can implement security(SSL/TLS) in the application in order to make it secure. What if someone else can handle this for us? What if we spend our valuable time focussing more on the implementation of business core requirements? Wouldn't it aid us to get an edge over our competition? AWS offers us a way to configure security at the infrastructure level. We've made the application load balancer(ALB) itself TLS secured. Self-signed certificates created using OpenSSL library can be imported in AWS using IAM or AWS Certificate Manager(ACM).     
+We can implement security(SSL/TLS) in the application in order to make it secure. What if someone else can handle this for us? What if we spend our valuable time focussing more on the implementation of business core requirements? Wouldn't it aid us to get an edge over our competition? AWS offers us a way to configure security at the infrastructure level. We've made the application load balancer(ALB) itself TLS secured. Self-signed certificates created using the OpenSSL library can be imported in AWS using IAM or AWS Certificate Manager(ACM).     
 
 11. Security Groups:
 They are acting as firewalls, filtering the traffic. One security group is sitting on top of the ALB permitting access to only a specific set of clients. This set of clients can be configured by the user through 'Parameters' in AWS Cloudformation. A second security group is attached to the EC2 instance which enables HTTP traffic only from the load balancer and SSH traffic only from a specific set of clients. 
 
 12. Authentication and Authorization in API Gateway using Cognito:
-A user pool is created in AWS Cognito using which external users can sign up and sign in. JSON Web Tokens(JWT) can be fetched from the pool, thus, limiting only authenticated users to trigger the CI/CD pipeline. 
+A user pool is created in AWS Cognito using which external users can sign up and sign in. JSON Web Tokens(JWT) can be fetched from the pool, thus, allowing only authenticated users to trigger the CI/CD pipeline. 
 
 13. Monitoring:
 AWS CloudWatch is used for monitoring purposes. The logs generated during various certain operations are stored in CloudWatch. If any failure is encountered, we can immediately access the logs for troubleshooting purposes.
