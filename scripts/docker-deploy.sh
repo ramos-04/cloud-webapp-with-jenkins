@@ -43,4 +43,4 @@ echo "listing the containers"
 
 docker ps -a
 
-
+# now you can access the website at http://<ipaddress>:8080/user/travel/
