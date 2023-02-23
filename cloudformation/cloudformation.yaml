@@ -25,9 +25,13 @@ Parameters:
     Description: Enter the ID of the VPC present in your AWS network   
     Type: String
 
-  parameterSubnetsForLoadBalancer:
-    Description: Enter the subnet IDs you want the load balancer to route the traffic to. You can specify only one subnet per Availability Zone. You must specify subnets from at least two Availability Zones to increase the availability of your load balancer.  
-    Type: CommaDelimitedList
+  parameterSubnetID:
+    Description: Enter the subnet IDs. These IDs will be used by the load balancer to route the traffic to the respective subnets and by the ASG to launch the ec2 instances in the respective subnets. You can specify only one subnet per Availability Zone. You must specify subnets from at least two Availability Zones to increase the availability of your load balancer.
+    Type: 'List<AWS::EC2::Subnet::Id>'
+
+  parameterCPUPolicyTargetValue:
+    Description: The target utilization for the CPU metric
+    Type: String
 
   parameterTLSCertificateARN:
     Description: Enter the TLS certificate ARN
@@ -111,7 +115,7 @@ Resources:
   resourceApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
-      Subnets: !Ref parameterSubnetsForLoadBalancer
+      Subnets: !Ref parameterSubnetID
       SecurityGroups:
        - !GetAtt resourceSecurityGroupForLoadBalancer.GroupId
 
@@ -429,6 +433,27 @@ Resources:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AWSLambdaFullAccess
 
+# create an autoscaling group
+  resourceAutoscalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      VPCZoneIdentifier: !Ref parameterSubnetID
+    LaunchTemplate:
+      LaunchTemplateId: !Ref resourceLaunchTemplate
+      Version: !GetAtt resourceLaunchTemplate.LatestVersionNumber
+      MaxSize: '6'
+      MinSize: '2'
+      DesiredCapacity: '4'
+# create a target auto scaling policy
+  resourceAutoscalingPolicy:
+    Type: AWS::AutoScaling::ScalingPolicy
+    Properties:
+      AutoScalingGroupName: !Ref resourceAutoscalingGroup
+      PolicyType: TargetTrackingScaling
+      TargetTrackingConfiguration:
+        PredefinedMetricSpecification:
+          PredefinedMetricType: ASGAverageCPUUtilization
+        TargetValue: !Ref parameterCPUPolicyTargetValue
 
 
 Outputs:
