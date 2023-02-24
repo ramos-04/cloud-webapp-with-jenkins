@@ -11,23 +11,10 @@ Parameters:
     Description: Enter the IP address(or range) of the HTTPS clients which can hit the Application Load Balancer(ALB). This is to add a layer of security by limiting HTTPS access to a specific number of clients. Failing to configure this parameter, a client with any IP address can access the ALB.
     Type: String
     Default: 0.0.0.0/0
-    
-  parameterUserData:
-    Description: script which will act as a userdata to initialize the EC2 instance during boot time 
-    Type: String
-    
-  parameterSSHKeyPair:
-    Description: Enter the key-pair name which shall be used for SSH access 
-    Type: String
-    Default: my-key-pair
 
   parameterVPCID:
     Description: Enter the ID of the VPC present in your AWS network   
     Type: String
-
-  parameterSubnetID:
-    Description: Enter the subnet IDs. These IDs will be used by the load balancer to route the traffic to the respective subnets and by the ASG to launch the ec2 instances in the respective subnets. You can specify only one subnet per Availability Zone. You must specify subnets from at least two Availability Zones to increase the availability of your load balancer.
-    Type: 'List<AWS::EC2::Subnet::Id>'
 
   parameterCPUPolicyTargetValue:
     Description: The target utilization for the CPU metric
@@ -41,40 +28,6 @@ Parameters:
     Description: Enter the Github token which will provide repository access permissions to CodePipeline 
     Type: String
 
-# create an EC2 instance 
-Resources:
-  resourceEC2:
-    Type: AWS::EC2::Instance
-    Properties:
-      AvailabilityZone: ap-south-1a
-      ImageId: ami-0b44050b2d893d5f7
-      InstanceType: t2.micro
-      KeyName: !Ref parameterSSHKeyPair
-      UserData: !Ref parameterUserData
-      SecurityGroups:
-        - !Ref resourceSecurityGroupForEC2
-      IamInstanceProfile : !Ref resourceEC2InstanceProfile
-      Tags: 
-        - Key: Name
-          Value: Django-EC2Instance
-        - Key: Name
-          Value: CodeDeploy
-
-
-# security group for the EC2 instance. Allows traffic on port 8080 only from the load balancer. Allows ssh access to defined clients on port 22 
-  resourceSecurityGroupForEC2:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-     GroupDescription: Allows traffic on port 8080 only from the Application Load Balancer(ALB). Allows ssh access to defined clients on port 22
-     SecurityGroupIngress:
-     - SourceSecurityGroupName: !Ref resourceSecurityGroupForLoadBalancer
-       IpProtocol: tcp
-       FromPort: 8080
-       ToPort: 8080
-     - CidrIp: !Ref parameterIPForSSHAccess
-       IpProtocol: tcp
-       FromPort: 22
-       ToPort: 22
 
   resourceSecurityGroupForLoadBalancer:
     Type: AWS::EC2::SecurityGroup
@@ -86,30 +39,6 @@ Resources:
        FromPort: 443
        ToPort: 443
 
-
-# IAM role for EC2 to gain S3 read-only access. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
-  resourceEC2Role:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-              - ec2.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess   
-
-
-# Instance profile for EC2. It acts as a container for the role
-  resourceEC2InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Roles:
-        - !Ref resourceEC2Role        
 
 # create an Application Load Balancer
   resourceApplicationLoadBalancer:
@@ -433,22 +362,13 @@ Resources:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AWSLambdaFullAccess
 
-# create an autoscaling group
-  resourceAutoscalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    Properties:
-      VPCZoneIdentifier: !Ref parameterSubnetID
-    LaunchTemplate:
-      LaunchTemplateId: !Ref resourceLaunchTemplate
-      Version: !GetAtt resourceLaunchTemplate.LatestVersionNumber
-      MaxSize: '6'
-      MinSize: '2'
-      DesiredCapacity: '4'
+
 # create a target auto scaling policy
   resourceAutoscalingPolicy:
     Type: AWS::AutoScaling::ScalingPolicy
     Properties:
-      AutoScalingGroupName: !Ref resourceAutoscalingGroup
+      AutoScalingGroupName:
+          Fn::ImportValue: ASG-ID
       PolicyType: TargetTrackingScaling
       TargetTrackingConfiguration:
         PredefinedMetricSpecification:
