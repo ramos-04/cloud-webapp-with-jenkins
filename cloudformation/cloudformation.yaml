@@ -7,81 +7,15 @@ Parameters:
     Type: String
     Default: 0.0.0.0/0
 
-  parameterIPForLoadBalancerAccess:
-    Description: Enter the IP address(or range) of the HTTPS clients which can hit the Application Load Balancer(ALB). This is to add a layer of security by limiting HTTPS access to a specific number of clients. Failing to configure this parameter, a client with any IP address can access the ALB.
-    Type: String
-    Default: 0.0.0.0/0
 
-  parameterVPCID:
-    Description: Enter the ID of the VPC present in your AWS network   
-    Type: String
 
-  parameterCPUPolicyTargetValue:
-    Description: The target utilization for the CPU metric
-    Type: String
-
-  parameterTLSCertificateARN:
-    Description: Enter the TLS certificate ARN
-    Type: String
 
   parameterGitHubToken:
     Description: Enter the Github token which will provide repository access permissions to CodePipeline 
     Type: String
 
 
-  resourceSecurityGroupForLoadBalancer:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-     GroupDescription: Allows traffic on port 443 from the defined clients
-     SecurityGroupIngress:
-     - CidrIp: !Ref parameterIPForLoadBalancerAccess
-       IpProtocol: tcp
-       FromPort: 443
-       ToPort: 443
 
-
-# create an Application Load Balancer
-  resourceApplicationLoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Subnets: !Ref parameterSubnetID
-      SecurityGroups:
-       - !GetAtt resourceSecurityGroupForLoadBalancer.GroupId
-
-
-# target group for a looad balancer
-  resourceTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      HealthCheckIntervalSeconds: 25
-      HealthCheckPath: '/user/healthcheck'
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 10
-      HealthyThresholdCount: 4
-      UnhealthyThresholdCount: 4
-      Matcher:
-        HttpCode: '200'
-      Port: 8080
-      Protocol: HTTP
-      VpcId: !Ref parameterVPCID 
-      TargetType: instance
-      Targets:
-        - Id: !Ref resourceEC2
-          Port: 8080
-
-
-# TLS secured Listener for the Application Load Balancer
-  resourceHTTPSALBListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      Certificates:
-      - CertificateArn: !Ref parameterTLSCertificateARN
-      DefaultActions:
-      - TargetGroupArn: !Ref resourceTargetGroup
-        Type: forward
-      LoadBalancerArn: !Ref resourceApplicationLoadBalancer
-      Port: 443
-      Protocol: HTTPS
 
 
 # create a S3 bucket to store the artifacts of CodePipeline operations
@@ -363,17 +297,7 @@ Parameters:
       - arn:aws:iam::aws:policy/AWSLambdaFullAccess
 
 
-# create a target auto scaling policy
-  resourceAutoscalingPolicy:
-    Type: AWS::AutoScaling::ScalingPolicy
-    Properties:
-      AutoScalingGroupName:
-          Fn::ImportValue: ASG-ID
-      PolicyType: TargetTrackingScaling
-      TargetTrackingConfiguration:
-        PredefinedMetricSpecification:
-          PredefinedMetricType: ASGAverageCPUUtilization
-        TargetValue: !Ref parameterCPUPolicyTargetValue
+
 
 
 Outputs:
