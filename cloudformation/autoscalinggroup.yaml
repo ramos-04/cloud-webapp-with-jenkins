@@ -7,7 +7,7 @@ Parameters:
 
   parameterEC2InstanceType:
     Description: Enter the EC2 instance type from the category of free tier
-    Type: AWS::EC2::Image::Id
+    Type: String
     AllowedValues:
       - t1.micro
       - t2.micro
@@ -21,9 +21,9 @@ Parameters:
     Type: String
     Default: 0.0.0.0/0
 
-  #parameterSubnetID:
-    #Description: Enter the subnet IDs. These IDs will be used by the load balancer to route the traffic to the respective subnets and by the ASG to launch the ec2 instances in the respective subnets. You can specify only one subnet per Availability Zone. You must specify subnets from at least two Availability Zones to increase the availability of your load balancer.
-    #Type: 'List<AWS::EC2::Subnet::Id>'
+  parameterSubnetID:
+     Description: Enter the subnet IDs. These IDs will be used by the load balancer to route the traffic to the respective subnets and by the ASG to launch the ec2 instances in the respective subnets. You can specify only one subnet per Availability Zone. You must specify subnets from at least two Availability Zones to increase the availability of your load balancer.
+     Type: 'List<AWS::EC2::Subnet::Id>'
 
   #parameterUserData:
   #  Description: script which will act as a userdata to initialize the EC2 instance during boot time
@@ -39,8 +39,9 @@ Resources:
         InstanceType: !Ref parameterEC2InstanceType
         KeyName: !Ref parameterSSHKeyPair
         SecurityGroupIds:
-          - !Ref resourceSecurityGroupForEC2
-        IamInstanceProfile: !Ref resourceEC2InstanceProfile
+          - !GetAtt resourceSecurityGroupForEC2.GroupId
+        IamInstanceProfile:
+            Name: !Ref resourceEC2InstanceProfile
         #UserData: !Ref parameterUserData
 
 # Instance profile for EC2. It acts as a container for the role. An application running on an Amazon EC2 instance is abstracted from AWS by the virtualized operating system. Because of this extra separation, you need an additional step to assign an AWS role and its associated permissions to an Amazon EC2 instance and make them available to its applications. This extra step is the creation of an instance profile attached to the instance.
@@ -76,18 +77,23 @@ Resources:
             IpProtocol: tcp
             FromPort: 22
             ToPort: 22
+          - CidrIp: !Ref parameterIPForSSHAccess
+            IpProtocol: tcp
+            FromPort: 8080
+            ToPort: 8080
 
 # create an autoscaling group
   resourceAutoscalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-      #VPCZoneIdentifier: !Ref parameterSubnetID
+     VPCZoneIdentifier:
+        Ref: parameterSubnetID
      LaunchTemplate:
        LaunchTemplateId: !Ref resourceLaunchTemplate
        Version: !GetAtt resourceLaunchTemplate.LatestVersionNumber
-       MaxSize: '2'
-       MinSize: '1'
-       DesiredCapacity: '1'
+     MaxSize: '3'
+     MinSize: '1'
+     DesiredCapacity: '2'
 
 Outputs:
   outputASG:
