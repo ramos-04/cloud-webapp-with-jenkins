@@ -228,7 +228,7 @@ Resources:
        LaunchTemplateId: !Ref resourceLaunchTemplate
        Version: !GetAtt resourceLaunchTemplate.LatestVersionNumber
      MaxSize: '3'
-     MinSize: '1'
+     MinSize: '2'
      DesiredCapacity: '2'
      TargetGroupARNs:
         - !Ref resourceTargetGroup
