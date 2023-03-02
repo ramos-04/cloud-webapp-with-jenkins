@@ -7,148 +7,15 @@ Parameters:
     Type: String
     Default: 0.0.0.0/0
 
-  parameterIPForLoadBalancerAccess:
-    Description: Enter the IP address(or range) of the HTTPS clients which can hit the Application Load Balancer(ALB). This is to add a layer of security by limiting HTTPS access to a specific number of clients. Failing to configure this parameter, a client with any IP address can access the ALB.
-    Type: String
-    Default: 0.0.0.0/0
-    
-  parameterUserData:
-    Description: script which will act as a userdata to initialize the EC2 instance during boot time 
-    Type: String
-    
-  parameterSSHKeyPair:
-    Description: Enter the key-pair name which shall be used for SSH access 
-    Type: String
-    Default: my-key-pair
 
-  parameterVPCID:
-    Description: Enter the ID of the VPC present in your AWS network   
-    Type: String
 
-  parameterSubnetsForLoadBalancer:
-    Description: Enter the subnet IDs you want the load balancer to route the traffic to. You can specify only one subnet per Availability Zone. You must specify subnets from at least two Availability Zones to increase the availability of your load balancer.  
-    Type: CommaDelimitedList
-
-  parameterTLSCertificateARN:
-    Description: Enter the TLS certificate ARN
-    Type: String
 
   parameterGitHubToken:
     Description: Enter the Github token which will provide repository access permissions to CodePipeline 
     Type: String
 
-# create an EC2 instance 
-Resources:
-  resourceEC2:
-    Type: AWS::EC2::Instance
-    Properties:
-      AvailabilityZone: ap-south-1a
-      ImageId: ami-0b44050b2d893d5f7
-      InstanceType: t2.micro
-      KeyName: !Ref parameterSSHKeyPair
-      UserData: !Ref parameterUserData
-      SecurityGroups:
-        - !Ref resourceSecurityGroupForEC2
-      IamInstanceProfile : !Ref resourceEC2InstanceProfile
-      Tags: 
-        - Key: Name
-          Value: Django-EC2Instance
-        - Key: Name
-          Value: CodeDeploy
 
 
-# security group for the EC2 instance. Allows traffic on port 8080 only from the load balancer. Allows ssh access to defined clients on port 22 
-  resourceSecurityGroupForEC2:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-     GroupDescription: Allows traffic on port 8080 only from the Application Load Balancer(ALB). Allows ssh access to defined clients on port 22
-     SecurityGroupIngress:
-     - SourceSecurityGroupName: !Ref resourceSecurityGroupForLoadBalancer
-       IpProtocol: tcp
-       FromPort: 8080
-       ToPort: 8080
-     - CidrIp: !Ref parameterIPForSSHAccess
-       IpProtocol: tcp
-       FromPort: 22
-       ToPort: 22
-
-  resourceSecurityGroupForLoadBalancer:
-    Type: AWS::EC2::SecurityGroup
-    Properties:
-     GroupDescription: Allows traffic on port 443 from the defined clients
-     SecurityGroupIngress:
-     - CidrIp: !Ref parameterIPForLoadBalancerAccess
-       IpProtocol: tcp
-       FromPort: 443
-       ToPort: 443
-
-
-# IAM role for EC2 to gain S3 read-only access. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
-  resourceEC2Role:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-          - Effect: Allow
-            Principal:
-              Service:
-              - ec2.amazonaws.com
-            Action:
-              - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess   
-
-
-# Instance profile for EC2. It acts as a container for the role
-  resourceEC2InstanceProfile:
-    Type: AWS::IAM::InstanceProfile
-    Properties:
-      Roles:
-        - !Ref resourceEC2Role        
-
-# create an Application Load Balancer
-  resourceApplicationLoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      Subnets: !Ref parameterSubnetsForLoadBalancer
-      SecurityGroups:
-       - !GetAtt resourceSecurityGroupForLoadBalancer.GroupId
-
-
-# target group for a looad balancer
-  resourceTargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      HealthCheckIntervalSeconds: 25
-      HealthCheckPath: '/user/healthcheck'
-      HealthCheckProtocol: HTTP
-      HealthCheckTimeoutSeconds: 10
-      HealthyThresholdCount: 4
-      UnhealthyThresholdCount: 4
-      Matcher:
-        HttpCode: '200'
-      Port: 8080
-      Protocol: HTTP
-      VpcId: !Ref parameterVPCID 
-      TargetType: instance
-      Targets:
-        - Id: !Ref resourceEC2
-          Port: 8080
-
-
-# TLS secured Listener for the Application Load Balancer
-  resourceHTTPSALBListener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      Certificates:
-      - CertificateArn: !Ref parameterTLSCertificateARN
-      DefaultActions:
-      - TargetGroupArn: !Ref resourceTargetGroup
-        Type: forward
-      LoadBalancerArn: !Ref resourceApplicationLoadBalancer
-      Port: 443
-      Protocol: HTTPS
 
 
 # create a S3 bucket to store the artifacts of CodePipeline operations
@@ -431,10 +298,9 @@ Resources:
 
 
 
+
+
 Outputs:
-  resourceWebsiteURL:
-    Description: URL to access the Django website through ALB
-    Value: !Join [ "/", [ 'https:/', !GetAtt resourceApplicationLoadBalancer.DNSName, user, travel ] ]
 
   resourceTriggerPipelineURL:
     Description: URL to trigger the startpipeline REST API through API Gateway
