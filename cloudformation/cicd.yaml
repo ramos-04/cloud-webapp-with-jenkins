@@ -301,9 +301,6 @@ Parameters:
 
 
 Outputs:
-  resourceWebsiteURL:
-    Description: URL to access the Django website through ALB
-    Value: !Join [ "/", [ 'https:/', !GetAtt resourceApplicationLoadBalancer.DNSName, user, travel ] ]
 
   resourceTriggerPipelineURL:
     Description: URL to trigger the startpipeline REST API through API Gateway

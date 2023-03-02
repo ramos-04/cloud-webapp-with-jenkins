@@ -34,9 +34,9 @@ Parameters:
     Description: Enter the ID of the VPC present in your AWS network
     Type: String
 
-  parameterTLSCertificateARN:
-    Description: Enter the TLS certificate ARN
-    Type: String
+  #parameterTLSCertificateARN:
+    #Description: Enter the TLS certificate ARN
+    #Type: String
 
   parameterCPUPolicyTargetValue:
     Description: The target utilization for the CPU metric
@@ -97,7 +97,8 @@ Resources:
             IpProtocol: tcp
             FromPort: 22
             ToPort: 22
-          - SourceSecurityGroupId: !Ref resourceSecurityGroupForLoadBalancer
+            #CidrIp: !Ref parameterIPForSSHAccess
+          - SourceSecurityGroupId: !GetAtt resourceSecurityGroupForLoadBalancer.GroupId
             IpProtocol: tcp
             FromPort: 8080
             ToPort: 8080
@@ -111,21 +112,6 @@ Resources:
        IpProtocol: tcp
        FromPort: 80
        ToPort: 80
-
-# create an autoscaling group
-  resourceAutoscalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    Properties:
-     VPCZoneIdentifier:
-        Ref: parameterSubnetID
-     LaunchTemplate:
-       LaunchTemplateId: !Ref resourceLaunchTemplate
-       Version: !GetAtt resourceLaunchTemplate.LatestVersionNumber
-     MaxSize: '3'
-     MinSize: '1'
-     DesiredCapacity: '2'
-     TargetGroupARNs:
-        - !Ref resourceTargetGroup
 
 
 # target group for a load balancer
@@ -177,12 +163,12 @@ Resources:
     Properties:
       Actions:
         - Type: forward
-          TargetGroupArn: !Ref TargetGroup1
+          TargetGroupArn: !Ref resourceTargetGroup
       Conditions:
         - Field: path-pattern
           PathPatternConfig:
             Values:
-              - '/travel'
+              - '/user/travel'                         # /bacnetserver
       ListenerArn: !Ref resourceHTTPSALBListener
       Priority: 1
 
@@ -191,15 +177,61 @@ Resources:
     Properties:
       Actions:
         - Type: forward
-          TargetGroupArn: !Ref TargetGroup1
+          TargetGroupArn: !Ref resourceTargetGroup
       Conditions:
         - Field: path-pattern
           PathPatternConfig:
             Values:
-              - '/admin'
+              - '/admin'                            # /modbusserver
       ListenerArn: !Ref resourceHTTPSALBListener
       Priority: 2
 
+
+  resourceListenerRule3:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: fixed-response
+          FixedResponseConfig:
+              MessageBody: 'You are at the base page. Three APIs are exposed namely /auth, /bacnetserver, /modbusserver '
+              StatusCode: '200'
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - '/'                               # /
+      ListenerArn: !Ref resourceHTTPSALBListener
+      Priority: 3
+
+  resourceListenerRule4:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref resourceTargetGroup
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - '/auth'                               # /auth
+      ListenerArn: !Ref resourceHTTPSALBListener
+      Priority: 4
+
+
+# create an autoscaling group
+  resourceAutoscalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+     VPCZoneIdentifier:
+        Ref: parameterSubnetID
+     LaunchTemplate:
+       LaunchTemplateId: !Ref resourceLaunchTemplate
+       Version: !GetAtt resourceLaunchTemplate.LatestVersionNumber
+     MaxSize: '3'
+     MinSize: '1'
+     DesiredCapacity: '2'
+     TargetGroupARNs:
+        - !Ref resourceTargetGroup
 
 # create a target auto scaling policy
   resourceAutoscalingPolicy:
@@ -215,6 +247,11 @@ Resources:
 
 
 Outputs:
+
+  outputWebsiteURL:
+    Description: URL to access the Django website through ALB
+    Value: !Join [ "/", [ 'http:/', !GetAtt resourceApplicationLoadBalancer.DNSName ] ]
+
   outputASG:
     Description: Export ID of the ASG from this stack to another stack - cross stack reference
     Value: !Ref resourceAutoscalingGroup
