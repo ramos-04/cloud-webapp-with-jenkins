@@ -43,11 +43,10 @@ Parameters:
     Type: String
     Default: 30
 
-
-
   #parameterUserData:
   #  Description: script which will act as a userdata to initialize the EC2 instance during boot time
   #  Type: String
+
 
 Resources:
   resourceLaunchTemplate:
@@ -60,9 +59,13 @@ Resources:
         KeyName: !Ref parameterSSHKeyPair
         SecurityGroupIds:
           - !GetAtt resourceSecurityGroupForEC2.GroupId
+   #    SecurityGroupIds:                                      # import the security group from the vpc stack using the cross stack reference
+   #      Fn::ImportValue:
+   #         exportSecurityGroupForLoadBalancer
         IamInstanceProfile:
             Name: !Ref resourceEC2InstanceProfile
         #UserData: !Ref parameterUserData
+
 
 # Instance profile for EC2. It acts as a container for the role. An application running on an Amazon EC2 instance is abstracted from AWS by the virtualized operating system. Because of this extra separation, you need an additional step to assign an AWS role and its associated permissions to an Amazon EC2 instance and make them available to its applications. This extra step is the creation of an instance profile attached to the instance.
   resourceEC2InstanceProfile:
@@ -70,6 +73,7 @@ Resources:
     Properties:
       Roles:
         - !Ref resourceEC2Role
+
 
 # IAM role for EC2 to gain S3 read-only access. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
   resourceEC2Role:
@@ -87,6 +91,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess
 
+
 # security group for the EC2 instance. Allows traffic on port 8080 only from the load balancer. Allows ssh access to defined clients on port 22
   resourceSecurityGroupForEC2:
       Type: AWS::EC2::SecurityGroup
@@ -102,6 +107,7 @@ Resources:
             IpProtocol: tcp
             FromPort: 8080
             ToPort: 8080
+
 
   resourceSecurityGroupForLoadBalancer:
     Type: AWS::EC2::SecurityGroup
@@ -134,15 +140,22 @@ Resources:
        # - Id: !Ref resourceEC2
        #   Port: 8080
 
+
 # create an Application Load Balancer
   resourceApplicationLoadBalancer:
     Type: AWS::ElasticLoadBalancingV2::LoadBalancer
     Properties:
       Subnets:
          Ref: parameterSubnetID
+   #     - Fn::ImportValue:
+   #          exportPublicSubnet1
+   #     - Fn::ImportValue:
+   #          exportPublicSubnet2
       SecurityGroups:
        - !GetAtt resourceSecurityGroupForLoadBalancer.GroupId
-
+  #   SecurityGroups:                   # import the security group from the vpc stack using the cross stack reference
+  #      Fn::ImportValue:
+  #         exportSecurityGroupForLoadBalancer
 
 
 # TLS secured Listener for the Application Load Balancer
@@ -158,6 +171,7 @@ Resources:
       Port: 80
       Protocol: HTTP
 
+
   resourceListenerRule1:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
@@ -171,6 +185,7 @@ Resources:
               - '/user/travel'                         # /bacnetserver
       ListenerArn: !Ref resourceHTTPSALBListener
       Priority: 1
+
 
   resourceListenerRule2:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
@@ -203,6 +218,7 @@ Resources:
       ListenerArn: !Ref resourceHTTPSALBListener
       Priority: 3
 
+
   resourceListenerRule4:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
@@ -222,8 +238,13 @@ Resources:
   resourceAutoscalingGroup:
     Type: AWS::AutoScaling::AutoScalingGroup
     Properties:
-     VPCZoneIdentifier:
+     VPCZoneIdentifier:    # A list of subnet IDs for a virtual private cloud (VPC) where instances in the Auto Scaling group can be created. Required to launch instances into a nondefault VPC. If you specify VPCZoneIdentifier with AvailabilityZones, the subnets that you specify for this property must reside in those Availability Zones. Import the subnets from the vpc stack.
         Ref: parameterSubnetID
+   #    - Fn::ImportValue:
+   #          exportPrivateSubnet1
+   #    - Fn::ImportValue:
+   #          exportPrivateSubnet2
+
      LaunchTemplate:
        LaunchTemplateId: !Ref resourceLaunchTemplate
        Version: !GetAtt resourceLaunchTemplate.LatestVersionNumber
@@ -232,6 +253,7 @@ Resources:
      DesiredCapacity: '2'
      TargetGroupARNs:
         - !Ref resourceTargetGroup
+
 
 # create a target auto scaling policy
   resourceAutoscalingPolicy:
@@ -245,7 +267,7 @@ Resources:
           PredefinedMetricType: ASGAverageCPUUtilization
         TargetValue: !Ref parameterCPUPolicyTargetValue
 
-
+        
 Outputs:
 
   outputWebsiteURL:

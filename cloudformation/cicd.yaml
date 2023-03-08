@@ -7,16 +7,9 @@ Parameters:
     Type: String
     Default: 0.0.0.0/0
 
-
-
-
   parameterGitHubToken:
     Description: Enter the Github token which will provide repository access permissions to CodePipeline 
     Type: String
-
-
-
-
 
 # create a S3 bucket to store the artifacts of CodePipeline operations
   resourceArtifactsS3Bucket:
@@ -176,6 +169,7 @@ Parameters:
               InputArtifacts:
                   - Name: BuildArtifact
 
+
 # create a service role for AWS Lambda
   resourceLambdaRole:
     Type: AWS::IAM::Role
@@ -192,6 +186,7 @@ Parameters:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AWSCodePipelineFullAccess
       - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+
 
 # create a Lambda function
   resourceLambda: 
@@ -235,12 +230,14 @@ Parameters:
       Runtime: "python3.6"
       Timeout: 10
 
+
 # create a REST API in API Gateway
   resourceRootAPIGateway:
     Type: AWS::ApiGateway::RestApi
     Properties:
       Name: my-apigateway
       Description: Gateway to expose REST APIs
+
 
 # create a resource in API Gateway
   resourceFirstAPIGateway:
@@ -295,9 +292,6 @@ Parameters:
           - 'sts:AssumeRole'
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AWSLambdaFullAccess
-
-
-
 
 
 Outputs:

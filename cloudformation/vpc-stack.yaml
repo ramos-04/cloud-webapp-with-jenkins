@@ -1,0 +1,311 @@
+# This template will provision the VPC.
+
+Description: The template deploys a VPC, with a pair of public and private subnets spread across two Availability Zones. It deploys an internet gateway, with a default route on the public subnets. It deploys a pair of NAT gateways (one in each AZ), and default routes for them in the private subnets. Each NAT gateway is created in a specific Availability Zone. If you have resources in multiple Availability Zones and they share one NAT gateway, and if the NAT gateway’s Availability Zone is down, resources in the other Availability Zones lose internet access. To create an Availability Zone-independent architecture, create a NAT gateway in each Availability Zone and configure your routing to ensure that resources use the NAT gateway in the same Availability Zone. Two important things to note that the each type of subnets(public or private) are spread across multiple availability zones to achieve high availability. Secondly, a NAT gateway is deployed in every AZ due to the above reason. Thus, one private subnet and one public subnet is placed in AZ 1 while another private subnet and another public subnet is placed in AZ 2.
+
+Parameters:
+  parameterVpcCIDR:
+    Description: Please enter the size of the VPC or the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.0.0.0/16        # A VPC with a size /16 IPv4 CIDR block (example: 10.0.0.0/16). This provides 65,536 private IPv4 addresses
+
+  parameterPublicSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 10.0.0.0/24       # range is from 10.0.0.0 to 10.0.0.255 which is equal to 256 hosts
+
+  parameterPublicSubnet2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the second Availability Zone
+    Type: String
+    Default: 10.0.1.0/24  # range is from 10.0.1.0 to 10.0.1.255 which is equal to 256 hosts
+
+  parameterPrivateSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
+    Type: String
+    Default: 10.0.2.0/24  # range is from 10.0.2.0 to 10.0.2.255 which is equal to 256 hosts
+
+  parameterPrivateSubnet2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
+    Type: String
+    Default: 10.0.3.0/24  # range is from 10.0.3.0 to 10.0.3.255 which is equal to 256 hosts
+
+  parameterIPForSSHAccess:
+    Description: Enter the IP address(or range) of the ssh clients which can access the EC2 instance. This is to add a layer of security by limiting SSH access to a specific number of clients. Failing to configure this parameter, a client with any IP address can gain SSH access to the EC2 instance if he has the required key pair
+    Type: String
+    Default: 0.0.0.0/0
+
+  parameterIPForLoadBalancerAccess:
+    Description: Enter the IP address(or range) of the HTTPS clients which can hit the Application Load Balancer(ALB). This is to add a layer of security by limiting HTTPS access to a specific number of clients. Failing to configure this parameter, a client with any IP address can access the ALB.
+    Type: String
+    Default: 0.0.0.0/0
+
+
+Resources:
+  resourceVPC:   # A VPC resource is created. The size of the VPC and DNS support option is enabled.
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref parameterVpcCIDR
+      EnableDnsSupport: true     # Indicates whether the DNS resolution is supported for the VPC. If enabled, queries to the Amazon provided DNS server at the 169.254.169.253 IP address, or the reserved IP address at the base of the VPC network range "plus two" succeed. If disabled, the Amazon provided DNS service in the VPC that resolves public DNS hostnames to IP addresses is not enabled.. Determines whether the VPC supports DNS resolution through the Amazon provided DNS server.
+      EnableDnsHostnames: true   # Determines whether the VPC supports automatically assigning public DNS hostnames to EC2 instances with public IP addresses.
+      Tags:
+        - Key: Name
+          Value: custom-vpc
+
+
+  resourceInternetGateway:
+    Type: AWS::EC2::InternetGateway  # Allocates an internet gateway for use with a VPC. After creating the Internet gateway, you then attach it to a VPC.
+    Properties:
+      Tags:
+        - Key: Name
+          Value: custom-vpc
+
+
+  resourceInternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment # Attaches an internet gateway, or a virtual private gateway to a VPC, enabling connectivity between the internet and the VPC.
+    Properties:
+      InternetGatewayId: !Ref resourceInternetGateway
+      VpcId: !Ref resourceVPC
+
+
+  resourcePublicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref resourceVPC             # The ID of the VPC the subnet should be in.
+      AvailabilityZone: !Select           # Fn::GetAZs returns an array that lists Availability Zones for a specified region in alphabetical order. Fn::Select returns a single object from a list of objects by index. 0 means it will return the first object.
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Ref parameterPublicSubnet1CIDR       # cidr range of the subnet
+      MapPublicIpOnLaunch: true                       # Indicates whether instances launched in this subnet receive a public IPv4 address
+      Tags:
+        - Key: Name
+          Value: custom-vpc
+
+
+  resourcePublicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref resourceVPC
+      AvailabilityZone: !Select
+        - 1                                 # selected a different availability zone as compared to the one mentioned for the previous public subnet to achieve high availability
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Ref parameterPublicSubnet2CIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: custom-vpc
+
+
+  resourcePrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref resourceVPC             # The ID of the VPC the subnet should be in.
+      AvailabilityZone: !Select           # Fn::GetAZs returns an array that lists Availability Zones for a specified region in alphabetical order. Fn::Select returns a single object from a list of objects by index. 0 means it will return the first object.
+        - 0
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Ref parameterPrivateSubnet1CIDR    # cidr range of the subnet
+      MapPublicIpOnLaunch: false         # Indicates whether instances launched in this subnet receive a public IPv4 address. False means no public IP allocated.
+      Tags:
+        - Key: Name
+          Value: custom-vpc
+
+
+  resourcePrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref resourceVPC              # The ID of the VPC the subnet should be in.
+      AvailabilityZone: !Select           # selected a different availability zone as compared to the one mentioned for the previous private subnet to achieve high availability
+        - 1
+        - Fn::GetAZs: !Ref 'AWS::Region'
+      CidrBlock: !Ref PrivateSubnet2CIDR  # cidr range of the subnet
+      MapPublicIpOnLaunch: false       # Indicates whether instances launched in this subnet receive a public IPv4 address. False means no public IP allocated.
+      Tags:
+        - Key: Name
+          Value: custom-vpc
+
+
+  resourceNatGateway1EIP:
+    Type: AWS::EC2::EIP                   # create an elastic IP as AWS asks us to allocate an elastic IP to a public NAT gateway
+    DependsOn: resourceInternetGatewayAttachment  # If you define an Elastic IP address and associate it with a VPC that is defined in the same template, you must declare a dependency on the VPC-gateway attachment by using the DependsOn Attribute on this resource. For example, an Amazon EC2 instance with a public IP address is dependent on the VPC-gateway attachment if the VPC and InternetGateway resources are also declared in the same template.
+    Properties:
+      Domain: vpc  # Indicates whether the Elastic IP address is for use with instances in a VPC or instance in EC2-Classic.
+
+
+  resourceNatGateway2EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: resourceInternetGatewayAttachment
+    Properties:
+      Domain: vpc
+
+
+  resourceNatGateway1:
+    Type: AWS::EC2::NatGateway  # Specifies a network address translation (NAT) gateway in the specified subnet. You can create either a public NAT gateway or a private NAT gateway. The default is a public NAT gateway. If you create a public NAT gateway, you must specify an elastic IP address.
+    Properties:
+      AllocationId: !GetAtt resourceNatGateway1EIP.AllocationId # [Public NAT gateway only] The allocation ID of the Elastic IP address that's associated with the NAT gateway. This property is required for a public NAT gateway and cannot be specified with a private NAT gateway.
+      ConnectivityType: public   # specify the type of the NAT gateway - whether public or private
+      SubnetId: !Ref resourcePublicSubnet1  # The subnet in which the NAT gateway should be located. The NAT gateway should reside in the public subnet so that it can route to the internet gateway. This also helps us specify the availability zone in which the NAT gateway should reside. Deploy one NAT Gateway in each AZ. Refer the description.
+
+
+  resourceNatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt resourceNatGateway2EIP.AllocationId
+      ConnectivityType: public
+      SubnetId: !Ref resourcePublicSubnet2
+
+
+# 1. Create a route table. 2. Add routes in that route table. 3. Associate that route table with a subnet.
+# create a route table - custom public route table
+  resourcePublicRouteTable:
+    Type: AWS::EC2::RouteTable    # Specifies a route table for the specified VPC. After you create a route table, you can add routes and associate the table with a subnet.
+    Properties:
+      VpcId: !Ref resourceVPC
+      Tags:
+        - Key: Name
+          Value: custom-vpc
+
+
+# Add routes in the above created custom public route table
+# Every route table contains a local route for communication within the VPC. This route is added by default to all route tables. If your VPC has more than one IPv4 CIDR block, your route tables contain a local route for each IPv4 CIDR block. Thus, there is no need to add a 'local route' in the route table.
+  resourceDefaultPublicRoute: # This route says all the network packets whose destination is 0.0.0.0/0, should be routed to the internet gateway
+    Type: AWS::EC2::Route    # Specifies a route in a route table within a VPC.
+    DependsOn: resourceInternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref resourcePublicRouteTable  # add the route in this route table
+      DestinationCidrBlock: 0.0.0.0/0   # the traffic which is aimed at this destination [Destination]
+      GatewayId: !Ref resourceInternetGateway  # the target where the packets should be routed  [Target]
+
+
+# Associate/link the above route table with the public subnet 1.  Each subnet in your VPC must be associated with a route table, which controls the routing for the subnet (subnet route table). You can explicitly associate a subnet with a particular route table. Otherwise, the subnet is implicitly associated with the main route table. A subnet can only be associated with one route table at a time, but you can associate multiple subnets with the same subnet route table
+# Associates a subnet with a route table. The subnet and route table must be in the same VPC. This association causes traffic originating from the subnet to be routed according to the routes in the route table.
+  resourcePublicSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref resourcePublicRouteTable
+      SubnetId: !Ref resourcePublicSubnet1
+
+
+  resourcePublicSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref resourcePublicRouteTable
+      SubnetId: !Ref resourcePublicSubnet2
+
+
+  resourcePrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref resourceVPC
+      Tags:
+        - Key: Name
+          Value: custom-vpc
+
+
+  resourceDefaultPrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref resourcePrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0                # the traffic that is destined to initiate a connection with the internet for software updates is routed to the NAT gateway which was created in the public subnet of the same availability zone
+      NatGatewayId: !Ref resourceNatGateway1
+
+
+  resourcePrivateSubnet1RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref resourcePrivateRouteTable1
+      SubnetId: !Ref resourcePrivateSubnet1
+
+
+  resourcePrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref resourceVPC
+      Tags:
+        - Key: Name
+          Value: custom-vpc
+
+
+  resourceDefaultPrivateRoute2:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref resourcePrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref resourceNatGateway2    # the traffic that is destined to initiate a connection with the internet for software updates is routed to the NAT gateway which was created in the public subnet of the same availability zone
+
+
+  resourcePrivateSubnet2RouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref resourcePrivateRouteTable2
+      SubnetId: !Ref resourcePrivateSubnet2
+
+# security group for the EC2 instance. Allows traffic on port 8080 only from the load balancer. Allows ssh access to defined clients on port 22
+  resourceSecurityGroupForEC2:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allows traffic on port 8080 only from the Application Load Balancer(ALB). Allows ssh access to defined clients on port 22
+        VpcId: !Ref resourceVPC
+        SecurityGroupIngress:
+          - CidrIp: !Ref parameterIPForSSHAccess
+            IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+          - SourceSecurityGroupId: !GetAtt resourceSecurityGroupForLoadBalancer.GroupId
+            IpProtocol: tcp
+            FromPort: 8080
+            ToPort: 8080
+
+
+  resourceSecurityGroupForLoadBalancer:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+     GroupDescription: Allows traffic on port 80 of ALB from the defined clients
+     VpcId: !Ref resourceVPC
+     SecurityGroupIngress:
+     - CidrIp: !Ref parameterIPForLoadBalancerAccess
+       IpProtocol: tcp
+       FromPort: 80
+       ToPort: 80
+
+
+Outputs:
+
+  outputVPC:
+    Description: A reference to the created VPC
+    Value: !Ref resourceVPC
+    Export:
+      Name: exportVPC
+
+  outputPublicSubnet1:
+    Description: A reference to the public subnet in the 1st Availability Zone
+    Value: !Ref resourcePublicSubnet1
+    Export:
+      Name: exportPublicSubnet1
+
+  outputPublicSubnet2:
+    Description: A reference to the public subnet in the 2nd Availability Zone
+    Value: !Ref resourcePublicSubnet2
+    Export:
+      Name: exportPublicSubnet2
+
+  outputPrivateSubnet1:
+    Description: A reference to the private subnet in the 1st Availability Zone
+    Value: !Ref resourcePrivateSubnet1
+    Export:
+      Name: exportPrivateSubnet1
+
+  outputPrivateSubnet2:
+    Description: A reference to the private subnet in the 2nd Availability Zone
+    Value: !Ref resourcePrivateSubnet2
+    Export:
+      Name: exportPrivateSubnet2
+
+  outputSecurityGroupForEC2:
+    Description: A reference to the security group for EC2
+    Value: !Ref resourceSecurityGroupForEC2
+    Export:
+      Name: exportSecurityGroupForEC2
+
+  outputSecurityGroupForLoadBalancer:
+    Description: A reference to the security group for ALB
+    Value: !Ref resourceSecurityGroupForLoadBalancer
+    Export:
+      Name: exportSecurityGroupForLoadBalancer
