@@ -34,9 +34,9 @@ Parameters:
     Description: Enter the ID of the VPC present in your AWS network
     Type: String
 
-  #parameterTLSCertificateARN:
-    #Description: Enter the TLS certificate ARN
-    #Type: String
+  parameterTLSCertificateARN:
+     Description: Enter the TLS certificate ARN
+     Type: String
 
   parameterCPUPolicyTargetValue:
     Description: The target utilization for the CPU metric
@@ -65,7 +65,29 @@ Resources:
         IamInstanceProfile:
             Name: !Ref resourceEC2InstanceProfile
         #UserData: !Ref parameterUserData
-
+        UserData:                 # Pipe symbol | in YAML places a newline character in every line followed. It makes our script readable.
+           Fn::Base64: | 
+               #!/bin/bash
+               apt update -y
+               apt install -y apt-transport-https ca-certificates curl software-properties-common
+               curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+               add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+               apt update -y
+               apt install -y docker-ce
+               docker version
+               echo "installing ruby"
+               apt-get install -y ruby
+               echo "downloading codedeploy agent"
+               wget https://aws-codedeploy-ap-south-1.s3.ap-south-1.amazonaws.com/latest/install
+               echo "providing executable permissions to the script"
+               chmod +x ./install
+               echo "installing codedeploy agent"
+               ./install auto
+               service codedeploy-agent start
+               echo "checking the status of the codedeploy agent"
+               service codedeploy-agent status
+             
+             
 
 # Instance profile for EC2. It acts as a container for the role. An application running on an Amazon EC2 instance is abstracted from AWS by the virtualized operating system. Because of this extra separation, you need an additional step to assign an AWS role and its associated permissions to an Amazon EC2 instance and make them available to its applications. This extra step is the creation of an instance profile attached to the instance.
   resourceEC2InstanceProfile:
@@ -112,12 +134,14 @@ Resources:
   resourceSecurityGroupForLoadBalancer:
     Type: AWS::EC2::SecurityGroup
     Properties:
-     GroupDescription: Allows traffic on port 80 of ALB from the defined clients
+     GroupDescription: Allows traffic on port 443 of ALB from the defined clients
      SecurityGroupIngress:
      - CidrIp: !Ref parameterIPForLoadBalancerAccess
        IpProtocol: tcp
-       FromPort: 80
-       ToPort: 80
+       FromPort: 443
+       ToPort: 443
+    #  FromPort: 80
+    #  ToPort: 80
 
 
 # target group for a load balancer
@@ -135,6 +159,8 @@ Resources:
       Port: 8080
       Protocol: HTTP
       VpcId: !Ref parameterVPCID
+     #       - Fn::ImportValue:        # import the VPC ID from the vpc stack using the cross stack reference
+     #            exportVPC
       TargetType: instance
       #Targets:
        # - Id: !Ref resourceEC2
@@ -162,14 +188,16 @@ Resources:
   resourceHTTPSALBListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
     Properties:
-      #Certificates:
-      #- CertificateArn: !Ref parameterTLSCertificateARN
+      Certificates:
+      - CertificateArn: !Ref parameterTLSCertificateARN
       DefaultActions:
       - TargetGroupArn: !Ref resourceTargetGroup
         Type: forward
       LoadBalancerArn: !Ref resourceApplicationLoadBalancer
-      Port: 80
-      Protocol: HTTP
+    # Port: 80
+      Port: 443
+      Protocol: HTTPS
+   #  Protocol: HTTP
 
 
   resourceListenerRule1:
@@ -248,7 +276,7 @@ Resources:
      LaunchTemplate:
        LaunchTemplateId: !Ref resourceLaunchTemplate
        Version: !GetAtt resourceLaunchTemplate.LatestVersionNumber
-     MaxSize: '3'
+     MaxSize: '2'
      MinSize: '2'
      DesiredCapacity: '2'
      TargetGroupARNs:
@@ -272,7 +300,7 @@ Outputs:
 
   outputWebsiteURL:
     Description: URL to access the Django website through ALB
-    Value: !Join [ "/", [ 'http:/', !GetAtt resourceApplicationLoadBalancer.DNSName ] ]
+    Value: !Join [ "/", [ 'https:/', !GetAtt resourceApplicationLoadBalancer.DNSName ] ]
 
   outputASG:
     Description: Export ID of the ASG from this stack to another stack - cross stack reference
