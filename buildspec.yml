@@ -17,7 +17,7 @@ phases:
     post_build:
         commands:
             - echo "Inside the post_build phase"
-            - echo "saving the docker image to a tar file. Here, the docker image from the local repository is converted into a tar file to procure portability"
+            - echo "saving the docker image to a tar file. Here, the docker image from the local repository is converted into a tar file to procure portability."
             - docker save -o python-django-server-img.tar python-django-server-img
 
 artifacts:
