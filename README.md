@@ -69,7 +69,7 @@ AWS CloudWatch is used for monitoring purposes. The logs generated during variou
 The below standalone entities can be used if you don't wish to get along with the CI/CD pipeline.
 
 1. Deployment:
-A script named 'docker-deploy.sh' is created to carry out the below important operations.
+A script named 'docker-deploy.sh' is created to carry out the below important operations
 
            A. Checking out source code from Github
            B. Building Docker images from the code
