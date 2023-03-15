@@ -27,8 +27,8 @@ docker images
 
 echo "Retrieve an authentication token and authenticate your Docker client to your registry."
 
-#aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/t4y9j5k5
+aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/t4y9j5k5
 
 echo "pushing the image to the registry"
 
-#docker push public.ecr.aws/t4y9j5k5/$IMAGE_NAME:$IMAGE_VERSION
+docker push public.ecr.aws/t4y9j5k5/$IMAGE_NAME:$IMAGE_VERSION
