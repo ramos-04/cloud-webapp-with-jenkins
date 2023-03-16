@@ -187,7 +187,17 @@ Resources:
           Fn::ImportValue:
               exportAutoScalingGroup-ID
 
-
+# create an ECR repository to store the python web app docker image
+  resourceECRPublicRepository:
+    Type: AWS::ECR::PublicRepository
+    Properties:
+      RepositoryName: "python-web-app"
+      RepositoryCatalogData:
+        OperatingSystems:
+          - "Linux"
+        Architectures:
+          - "x86"
+        RepositoryDescription: "This is a sample repository to store the python web app docker image"
 
 
 
