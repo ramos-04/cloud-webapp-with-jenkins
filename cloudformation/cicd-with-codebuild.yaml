@@ -1,5 +1,5 @@
 
-# This yaml involves configurations to create an AWS stack of resources using cloudformation
+# This yaml involves configurations to create a CICD pipeline using AWS stack of resources launched via cloudformation. The CI server used is codebuild.
 
 Parameters:
   parameterIPForSSHAccess:
@@ -16,7 +16,7 @@ Parameters:
 #   DeletionPolicy: Retain
     Type: AWS::S3::Bucket
 
-
+Resources:
 # create a service role for CodeBuild
   resourceCodeBuildRole:
     Type: AWS::IAM::Role
@@ -34,23 +34,6 @@ Parameters:
         - arn:aws:iam::aws:policy/AWSCodeBuildDeveloperAccess
         - arn:aws:iam::aws:policy/CloudWatchFullAccess
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
-
-
-# create a service role for CodeDeploy
-  resourceCodeDeployRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: 2012-10-17
-        Statement:
-        - Effect: Allow
-          Principal:
-            Service:
-            - 'codedeploy.amazonaws.com'
-          Action:
-          - 'sts:AssumeRole'
-      ManagedPolicyArns:
-        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
 
 
 # create a service role for CodePipeline
@@ -89,24 +72,6 @@ Parameters:
       Source:
         Type: CODEPIPELINE
       TimeoutInMinutes: 10
-
-
-# create a codedeploy application
-  resourceCodeDeployApplication:
-    Type: AWS::CodeDeploy::Application
-
-
-# create a codedeploy deployment group
-  resourceDeploymentGroup:
-    Type: AWS::CodeDeploy::DeploymentGroup
-    Properties:
-      ApplicationName: !Ref resourceCodeDeployApplication
-      ServiceRoleArn: !GetAtt resourceCodeDeployRole.Arn
-      DeploymentConfigName: CodeDeployDefault.AllAtOnce
-      Ec2TagFilters:  
-        - Key: Name
-          Type: KEY_AND_VALUE
-          Value: CodeDeploy
 
 
 # create a CodePipeline
@@ -293,13 +258,46 @@ Parameters:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/AWSLambdaFullAccess
 
+# create a service role for CodeDeploy
+  resourceCodeDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'codedeploy.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+
+
+# create a codedeploy application
+  resourceCodeDeployApplication:
+    Type: AWS::CodeDeploy::Application
+
+
+# create a codedeploy deployment group
+  resourceDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref resourceCodeDeployApplication
+      ServiceRoleArn: !GetAtt resourceCodeDeployRole.Arn
+      DeploymentConfigName: CodeDeployDefault.AllAtOnce
+      Ec2TagFilters:
+        - Key: Name
+          Type: KEY_AND_VALUE
+          Value: CodeDeploy
+
 
 Outputs:
 
   resourceTriggerPipelineURL:
     Description: URL to trigger the startpipeline REST API through API Gateway
     Value: !Sub "https://${resourceRootAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/dev/startpipeline"
-
 
 
 

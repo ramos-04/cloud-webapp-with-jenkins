@@ -1,0 +1,196 @@
+
+# This yaml involves configurations to create a CICD pipeline using Jenkins and codedeploy launched via cloudformation. The CI server used is jenkins.
+
+Parameters:
+
+  parameterAMIID:
+    Description: Enter the AMI ID from the category of free tier
+    Type: AWS::EC2::Image::Id
+
+  parameterEC2InstanceType:
+    Description: Enter the EC2 instance type from the category of free tier
+    Type: String
+    AllowedValues:
+      - t1.micro
+      - t2.micro
+
+  parameterSSHKeyPair:
+    Description: Enter the key-pair name which shall be used for SSH access into the jenkins instance
+    Type: AWS::EC2::KeyPair::KeyName
+
+  parameterIPForSSHAndJenkinsAccess:
+    Description: Enter the IP address(or range) of clients which can access the Jenkins EC2 instance through ssh. These clients can only access the jenkins UI. This is to add a layer of security by limiting SSH access to a specific number of clients. Failing to configure this parameter, a client with any IP address can gain SSH access to the EC2 instance if he has the required key pair
+    Type: String
+
+
+Resources:
+# create a launch template for an ec2 instance which should run jenkins CI server
+  resourceLaunchTemplate:
+    Type: AWS::EC2::LaunchTemplate
+    Properties:
+      LaunchTemplateName: jenkins-launch-template
+      LaunchTemplateData:
+        ImageId: !Ref parameterAMIID
+        InstanceType: !Ref parameterEC2InstanceType
+        KeyName: !Ref parameterSSHKeyPair
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: name
+                Value: ramos
+              - Key: name
+                Value: jenkins
+        SecurityGroupIds:
+          - !GetAtt resourceSecurityGroupForEC2Jenkins.GroupId
+   #    SecurityGroupIds:                                      # import the security group from the vpc stack using the cross stack reference
+   #      Fn::ImportValue:
+   #         exportSecurityGroupForLoadBalancer
+        IamInstanceProfile:
+            Name: !Ref resourceEC2InstanceProfile
+        #Install jenkins, AWS CLI and Docker software in this server
+        UserData:                 # Pipe symbol | in YAML places a newline character in every line followed. It makes our script readable.
+           Fn::Base64: | 
+               #!/bin/bash
+               apt update -y
+               apt install -y default-jre
+               apt install -y default-jdk
+               wget -q -O - https://pkg.jenkins.io/debian-stable/jenkins.io.key | gpg --dearmor -o /usr/share/keyrings/jenkins.gpg
+               sh -c 'echo deb [signed-by=/usr/share/keyrings/jenkins.gpg] http://pkg.jenkins.io/debian-stable binary/ > /etc/apt/sources.list.d/jenkins.list'
+               apt update -y
+               apt install -y jenkins
+               systemctl start jenkins.service
+               systemctl status jenkins
+               apt install -y unzip
+               curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+               unzip awscliv2.zip
+               sudo ./aws/install
+               aws --version
+               apt update -y
+               apt install -y apt-transport-https ca-certificates curl software-properties-common
+               curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+               add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+               apt update -y
+               apt install -y docker-ce
+               docker version
+
+
+# security group for the EC2 instance. Allows traffic on port 8080 only from a specefic host. Allow ssh access from a specefic host.
+  resourceSecurityGroupForEC2Jenkins:
+      Type: AWS::EC2::SecurityGroup
+      Properties:
+        GroupDescription: Allows traffic on port 8080 only from the Application Load Balancer(ALB). Allows ssh access to defined clients on port 22
+        SecurityGroupIngress:
+          - CidrIp: !Ref parameterIPForSSHAndJenkinsAccess
+            IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+          - CidrIp: !Ref parameterIPForSSHAndJenkinsAccess
+            IpProtocol: tcp
+            FromPort: 8080
+            ToPort: 8080
+
+
+# Instance profile for EC2. It acts as a container for the role. An application running on an Amazon EC2 instance is abstracted from AWS by the virtualized operating system. Because of this extra separation, you need an additional step to assign an AWS role and its associated permissions to an Amazon EC2 instance and make them available to its applications. This extra step is the creation of an instance profile attached to the instance.
+  resourceEC2InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref resourceEC2Role
+
+
+# IAM role for EC2 to gain S3 access. This ec2 should have permissions to access S3 to push the deployment artifact, access ECR to upload docker image.
+  resourceEC2Role:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - ec2.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonElasticContainerRegistryPublicFullAccess
+
+
+  resourceJenkinsS3AccessIAMPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: S3AccessForJenkins
+      Roles:
+        - !Ref resourceEC2Role                # Attach this policy to the above ec2 role
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:PutObject'
+              - 's3:GetObject'
+              - 's3:GetObjectVersion'
+              - 's3:DeleteObject'
+              - 's3:DeleteObjectVersion'
+            Resource: 'arn:aws:s3:::jenkins-bucket-s3-ramos-cfn/*'
+          - Effect: Allow
+            Action:
+              - 's3:ListBucket'
+              - 's3:GetBucketLocation'
+            Resource: 'arn:aws:s3:::jenkins-bucket-s3-ramos-cfn'
+
+
+# create a S3 bucket to store the artifacts of codedeploy operations and backup for the jenkins job.
+  resourceJenkinsS3Bucket:
+#   DeletionPolicy: Retain
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: jenkins-bucket-s3-ramos-cfn
+
+
+# create a service role for CodeDeploy
+  resourceCodeDeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'codedeploy.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole
+
+
+# create a codedeploy application
+  resourceCodeDeployApplication:
+    Type: AWS::CodeDeploy::Application
+
+
+# create a codedeploy deployment group
+  resourceDeploymentGroup:
+    Type: AWS::CodeDeploy::DeploymentGroup
+    Properties:
+      ApplicationName: !Ref resourceCodeDeployApplication
+      ServiceRoleArn: !GetAtt resourceCodeDeployRole.Arn
+      DeploymentStyle:
+          DeploymentType: IN_PLACE
+      DeploymentConfigName: CodeDeployDefault.AllAtOnce
+      LoadBalancerInfo:
+         TargetGroupInfoList:
+           - Name:
+                Fn::ImportValue:
+                   exportTargetGroup-ID
+      AutoScalingGroups:                 # on which autoscaling group, the deployment should happen
+          Fn::ImportValue:
+              exportAutoScalingGroup-ID
+
+
+
+
+
+
+
+

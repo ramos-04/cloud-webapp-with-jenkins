@@ -15,7 +15,6 @@ Parameters:
   parameterIPForLoadBalancerAccess:
     Description: Enter the IP address(or range) of the HTTPS clients which can hit the Application Load Balancer(ALB). This is to add a layer of security by limiting HTTPS access to a specific number of clients. Failing to configure this parameter, a client with any IP address can access the ALB.
     Type: String
-    Default: 0.0.0.0/0
 
   parameterSSHKeyPair:
     Description: Enter the key-pair name which shall be used for SSH access
@@ -24,7 +23,6 @@ Parameters:
   parameterIPForSSHAccess:
     Description: Enter the IP address(or range) of the ssh clients which can access the EC2 instance. This is to add a layer of security by limiting SSH access to a specific number of clients. Failing to configure this parameter, a client with any IP address can gain SSH access to the EC2 instance if he has the required key pair
     Type: String
-    Default: 0.0.0.0/0
 
   parameterSubnetID:
      Description: Enter the subnet IDs. These IDs will be used by the load balancer to route the traffic to the respective subnets and by the ASG to launch the ec2 instances in the respective subnets. You can specify only one subnet per Availability Zone. You must specify subnets from at least two Availability Zones to increase the availability of your load balancer.
@@ -57,6 +55,11 @@ Resources:
         ImageId: !Ref parameterAMIID
         InstanceType: !Ref parameterEC2InstanceType
         KeyName: !Ref parameterSSHKeyPair
+        TagSpecifications:
+          - ResourceType: instance
+            Tags:
+              - Key: name
+                Value: codedeploy
         SecurityGroupIds:
           - !GetAtt resourceSecurityGroupForEC2.GroupId
    #    SecurityGroupIds:                                      # import the security group from the vpc stack using the cross stack reference
@@ -97,7 +100,7 @@ Resources:
         - !Ref resourceEC2Role
 
 
-# IAM role for EC2 to gain S3 read-only access. This is required to fetch build artifacts from the S3 bucket during the CodePipeline operations.
+# IAM role for EC2 to gain S3 read-only access. This is required to fetch build artifacts from the S3 bucket during the Codedeploy operations.
   resourceEC2Role:
     Type: AWS::IAM::Role
     Properties:
@@ -276,9 +279,9 @@ Resources:
      LaunchTemplate:
        LaunchTemplateId: !Ref resourceLaunchTemplate
        Version: !GetAtt resourceLaunchTemplate.LatestVersionNumber
-     MaxSize: '2'
-     MinSize: '2'
-     DesiredCapacity: '2'
+     MaxSize: '1'
+     MinSize: '1'
+     DesiredCapacity: '1'
      TargetGroupARNs:
         - !Ref resourceTargetGroup
 
@@ -306,4 +309,10 @@ Outputs:
     Description: Export ID of the ASG from this stack to another stack - cross stack reference
     Value: !Ref resourceAutoscalingGroup
     Export:
-      Name: ASG-ID
+      Name: exportAutoScalingGroup-ID
+
+  outputTargetGroup:
+    Description: Export ID of the target group from this stack to another stack - cross stack reference
+    Value: !Ref resourceTargetGroup
+    Export:
+      Name: exportTargetGroup-ID

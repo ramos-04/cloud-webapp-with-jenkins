@@ -25,13 +25,16 @@ pwd
 echo "listing the current directory contents"
 ls
 
-echo "listing the /opt directory contents"
-ls /opt/
+#echo "listing the /opt directory contents"
+#ls /opt/
 
 
-echo "loading the docker image from a tar file"
-docker load --input $FILE_PATH
+#echo "loading the docker image from a tar file"
+#docker load --input $FILE_PATH
+
+echo "dowloading the docker image from the ECR repository"
+docker pull public.ecr.aws/t4y9j5k5/ramos-python-django:v1
 
 # listing docker images
-echo "listing docker images: "
+echo "listing docker images"
 docker images

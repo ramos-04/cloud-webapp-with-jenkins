@@ -1,26 +1,21 @@
 version: 0.0
 os: linux
 
-files:
-  - source: webserver/python-django-server-img.tar
-    destination: /opt/docker-image
-
 hooks:
- 
-  AfterInstall:
+
+  ApplicationStop:
+    - location: scripts/codedeploy/stop.sh
+      timeout: 30
+      runas: root
+  BeforeInstall:
     - location: scripts/codedeploy/dependencies.sh
-      timeout: 300
+      timeout: 30
       runas: root
   ApplicationStart:
     - location: scripts/codedeploy/start.sh
-      timeout: 300
-      runas: root
-  ApplicationStop:
-    - location: scripts/codedeploy/stop.sh
-      timeout: 300
+      timeout: 30
       runas: root
   ValidateService:
     - location: scripts/codedeploy/validate.sh
-      timeout: 300
+      timeout: 30
       runas: root
-
