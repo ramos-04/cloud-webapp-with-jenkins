@@ -5,17 +5,17 @@ hooks:
 
   ApplicationStop:
     - location: scripts/codedeploy/stop.sh
-      timeout: 30
+      timeout: 300
       runas: root
   BeforeInstall:
     - location: scripts/codedeploy/dependencies.sh
-      timeout: 30
+      timeout: 300
       runas: root
   ApplicationStart:
     - location: scripts/codedeploy/start.sh
-      timeout: 30
+      timeout: 300
       runas: root
   ValidateService:
     - location: scripts/codedeploy/validate.sh
-      timeout: 30
+      timeout: 300
       runas: root
