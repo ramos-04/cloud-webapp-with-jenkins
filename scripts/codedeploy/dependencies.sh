@@ -33,7 +33,7 @@ ls
 #docker load --input $FILE_PATH
 
 echo "dowloading the docker image from the ECR repository"
-docker pull public.ecr.aws/t4y9j5k5/ramos-python-django:v1
+docker pull public.ecr.aws/t4y9j5k5/python-webapp:v1
 
 # listing docker images
 echo "listing docker images"
