@@ -313,6 +313,6 @@ Outputs:
 
   outputTargetGroup:
     Description: Export ID of the target group from this stack to another stack - cross stack reference
-    Value: !Ref resourceTargetGroup
+    Value: !GetAtt resourceTargetGroup.TargetGroupName
     Export:
       Name: exportTargetGroup-ID

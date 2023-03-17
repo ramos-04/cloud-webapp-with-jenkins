@@ -37,8 +37,6 @@ Resources:
           - ResourceType: instance
             Tags:
               - Key: name
-                Value: ramos
-              - Key: name
                 Value: jenkins
         SecurityGroupIds:
           - !GetAtt resourceSecurityGroupForEC2Jenkins.GroupId
@@ -61,6 +59,7 @@ Resources:
                systemctl start jenkins.service
                systemctl status jenkins
                apt install -y unzip
+               apt install -y zip
                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
                unzip awscliv2.zip
                sudo ./aws/install
@@ -72,6 +71,16 @@ Resources:
                apt update -y
                apt install -y docker-ce
                docker version
+               usermod -aG docker jenkins
+               systemctl restart jenkins
+
+# create an ec2 instance which should run the jenkins CI server from the above created launch template
+  resourceEC2JenkinsInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      LaunchTemplate:
+          LaunchTemplateId: !Ref resourceLaunchTemplate
+          Version: !GetAtt resourceLaunchTemplate.LatestVersionNumber
 
 
 # security group for the EC2 instance. Allows traffic on port 8080 only from a specefic host. Allow ssh access from a specefic host.
@@ -98,7 +107,7 @@ Resources:
         - !Ref resourceEC2Role
 
 
-# IAM role for EC2 to gain S3 access. This ec2 should have permissions to access S3 to push the deployment artifact, access ECR to upload docker image.
+# IAM role for EC2 to gain following permissions -  S3 access to push the deployment artifact. ECR access to push the docker images. Codedeploy access to trigger and deploy applications via codedeploy.
   resourceEC2Role:
     Type: AWS::IAM::Role
     Properties:
@@ -113,6 +122,7 @@ Resources:
               - 'sts:AssumeRole'
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonElasticContainerRegistryPublicFullAccess
+        - arn:aws:iam::aws:policy/AWSCodeDeployFullAccess
 
 
   resourceJenkinsS3AccessIAMPolicy:
@@ -177,6 +187,7 @@ Resources:
       ServiceRoleArn: !GetAtt resourceCodeDeployRole.Arn
       DeploymentStyle:
           DeploymentType: IN_PLACE
+          DeploymentOption: WITH_TRAFFIC_CONTROL
       DeploymentConfigName: CodeDeployDefault.AllAtOnce
       LoadBalancerInfo:
          TargetGroupInfoList:
@@ -184,20 +195,20 @@ Resources:
                 Fn::ImportValue:
                    exportTargetGroup-ID
       AutoScalingGroups:                 # on which autoscaling group, the deployment should happen
-          Fn::ImportValue:
-              exportAutoScalingGroup-ID
+          - Fn::ImportValue:
+               exportAutoScalingGroup-ID
 
 # create an ECR repository to store the python web app docker image
-  resourceECRPublicRepository:
-    Type: AWS::ECR::PublicRepository
-    Properties:
-      RepositoryName: "python-web-app"
-      RepositoryCatalogData:
-        OperatingSystems:
-          - "Linux"
-        Architectures:
-          - "x86"
-        RepositoryDescription: "This is a sample repository to store the python web app docker image"
+  #resourceECRPublicRepository:
+    #Type: AWS::ECR::PublicRepository
+    #Properties:
+      #RepositoryName: 'python-web-app'
+      #RepositoryCatalogData:
+        #OperatingSystems:
+          #- 'Linux'
+        #Architectures:
+          #- 'x86'
+        #RepositoryDescription: 'This is a sample repository to store the python web app docker image'
 
 
 

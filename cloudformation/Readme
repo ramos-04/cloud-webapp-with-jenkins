@@ -1,0 +1,104 @@
+**********  This file will give you the steps to deploy the cloudformation stacks  **********
+
+1. The vpcstack contains the vpc components. These components are referenced in the webstack. Currently, the reference part is commented but you can enable it anytime by uncommenting and tweaking.
+
+2. The webstack possess all the components to launch a web application. You can use the below command in the aws cli to launch the validate, launch or update the stack.
+
+3. There are two cicd stacks namely cicd-with-codebuild.yaml and cicd-with-jenkins.yaml. The difference between them lies in the CI servers. One has codebuild as the CI server and the other has jenkins as a CI server.
+
+
+-> Make sure you have installed AWS cli in your development machine. Configure the secret key and access key in the aws cli. Always use environment variables for the same so that the lifetime of the credentials is only till the time the shell exists. Set the AWS region closest to your location(Mumbai) as if you choose US region and you stay in Mumbai, then you may incur high data transfer cost. AWS by default uses cloudfront to route traffic globally. Thus, you have to pay the cloudfront data tranfer cost.
+
+-> Create a SSH key pair in the Mumbai AWS region. Pass the keypair name as a parameter to the cloudformation command.
+
+-> Create a TLS certificate using the below commands and upload it to ACM
+
+          1. Generate a private key
+
+                $ openssl genrsa 2048 > my-private-key.pem
+
+          2. Generate certificate using private key, you will be prompted to fill some fields. Fill required fields randomly, except for Common Name fill it with *.amazonaws.com or your valid domain name
+
+                $ openssl req -new -x509 -nodes -sha256 -days 365 -key my-private-key.pem -outform PEM -out my-certificate.pem
+
+          3. Upload certificate & its private key to Amazon Certificate Manager. As a result of the below command, a certificate arn will be generated. Pass the arn as a parameter in the next  cloudformation  command/API.
+
+                $ aws acm import-certificate --certificate fileb://my-certificate.pem --private-key fileb://my-private-key.pem
+
+
+-> Find the public IP of your development machine using https://whatismyipaddress.com/ Configure this IP in the parameter of the cloudformation command so that only your development machine can do ssh access in the ec2 instance and can access the ALB. Launch the stack in the Mumbai region to avoid high data transfer charges. If you used US region, then aws sometimes by default uses cloudfront to route the request faster and thus this can incur charges. Copy the free tier AMI-ID, free tier EC2-instance type(t2.micro), default vpcid, subnet id from the aws management console with respect to the correct AWS region.
+
+-> There are multiple stacks and they are linked via cross stack reference. VPC stack creates vpc resources. The web stack and the cicd stack using jenkins depends on the vpc stack to input vpc resources(however currently that linking is commented as a custom vpc is not under free tier, hence we are using the default free vpc offered by vpc). The cicd stack using jenkins is dependent on web stack as it requires ASG and Target group parameters to link with codedeploy.
+
+   1. Launch the web stack and you can update it in the future if required. Configure all the parameter values as per your AWS account setup. Make sure you are launching the stack in the closest region from your location to avoid high data transfer cost.
+
+        -> create the cloudformation web stack   (Please check how you have inputted multiple values(list) for the parameterSubnetID parameter)
+
+$ aws cloudformation create-stack --stack-name ramos-web-stack --template-body file://webstack.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterSubnetID,ParameterValue="subnet-0debsdf43efacb381234\,subnet-0dsgfhcdefrfd381234" ParameterKey=parameterVPCID,ParameterValue=vpc-09412fresdf3fsd0ce2d21 ParameterKey=parameterTLSCertificateARN,ParameterValue=arn:aws:acm:ap-south-1:444444444444:certificate/444444463-412a-444444a5-44444dd-4444444385 ParameterKey=parameterIPForLoadBalancerAccess,ParameterValue=100.10.10.10/32 ParameterKey=parameterIPForSSHAccess,ParameterValue=100.10.10.10/32 --capabilities CAPABILITY_IAM
+
+
+       -> update the cloudformation web stack
+
+$ aws cloudformation update-stack --stack-name ramos-web-stack --template-body file://webstack.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterSubnetID,ParameterValue="subnet-0debsdf43efacb381234\,subnet-0dsgfhcdefrfd381234" ParameterKey=parameterVPCID,ParameterValue=vpc-09412fresdf3fsd0ce2d21 ParameterKey=parameterTLSCertificateARN,ParameterValue=arn:aws:acm:ap-south-1:444444444444:certificate/444444463-412a-444444a5-44444dd-4444444385 ParameterKey=parameterIPForLoadBalancerAccess,ParameterValue=100.10.10.10/32 ParameterKey=parameterIPForSSHAccess,ParameterValue=100.10.10.10/32 --capabilities CAPABILITY_IAM
+
+
+(When you update a stack, you submit changes, such as new input parameter values or an updated template. AWS CloudFormation compares the changes you submit with the current state of your stack and updates only the changed resources)
+
+
+   2. Launch the cicd stack with jenkins. Once the web stack is up and running, create the cloudformation cicd stack with jenkins. You can launch this stack only after launching the web stack because it references exported values of the web stack. This stack will not create a public ECR repository as public ECR repositories are only supported in the us-east-1 region as of now. Thus, you have to create it manually through the console.
+
+          -> create the cloudformation cicd stack with jenkins
+
+$ aws cloudformation create-stack --stack-name ramos-cicd-stack --template-body file://cicd-with-jenkins.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterIPForSSHAndJenkinsAccess,ParameterValue=100.10.10.10/32 --capabilities CAPABILITY_IAM
+
+
+           -> update the cloudformation cicd stack with jenkins
+
+$ aws cloudformation update-stack --stack-name ramos-cicd-stack --template-body file://cicd-with-jenkins.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterIPForSSHAndJenkinsAccess,ParameterValue=100.10.10.10/32 --capabilities CAPABILITY_IAM
+
+
+          -> After launching the above stack, an ec2 instance will be spun which is preinstalled with Jenkins, AWS CLI and Docker. Access the Jenkins UI using the URL http://<ec2-public-ip>:8080
+          -> As the jenkins is a fresh install, you will need to unlock jenkins by entering a secret key. SSH into the jenkins ec2 instance and copy the secret key from /var/lib/jenkins/secrets/initialAdminPassword. Install all the suggested plugins. It is very important to install all the suggested plugins.
+          -> You can skip the user registration part as when you will import your backup jenkins project, your users will also get imported.
+          -> Set the jenkins URL to http://<ec2-jenkins-public-IP>:8080/
+          -> Go to ManagePlugins section. Install the Thinbackup plugin. Configure the backup directory path in the settings of thinbackup. The path should be any path in your ec2 instance where you will be importing the jenkins project backup. Set the path to '/home/ubuntu/backup/'.
+          ->  Create a backup folder in the ec2 instance
+           $ mkdir -p /home/ubuntu/backup/
+          -> Copy the jenkins backup project from the remote storage to this ec2 instance at the above mentioned backup path. Make sure the jenkins backup project is zipped in a folder of the name format 'FULL-2023-03-14_12-22' otherwise thinbackup will not be able to restore it. Say the backup path configured in the settings of thinbackup is '/home/ubuntu/backup/' then you the backup project with the name format 'FULL-2023-03-14_12-22' should be copied at the path '/home/ubuntu/backup/'. Make sure it has the required permissions. The jenkins backup project is stored in Github/Google-drive/S3. This backup project has all the jenkins pipeline jobs and configurations. Copy the jenkins backup project from S3/Google drive to the ec2 instance
+            $ aws s3 cp s3://jenkins-bucket-s3-ramos-cfn/<FULL-2023-03-14_12-22.zip> /home/ubuntu/backup/ --recursive
+
+            -> Extract the zip at the path /home/ubuntu/backup/. Make sure a folder named 'FULL-2023-03-14_12-22' is present in the path '/home/ubuntu/backup/' else thinbackup will not detect the backup.
+
+            -> Make sure the linux user named 'jenkins' has permissions to access this backup folder. Change the owner of this folder to 'jenkins' user.
+                  $ sudo chown -R jenkins ~/backup/
+
+          -> Go to 'Restore' option in thinbackup. In the dropdown, an entry of the backup folder should be seen automatically. If the entry is not detected, that means thinback was not able to detect the backup folder. Revisit and review the previous steps in that case. If the entry is detected, then restore the backup.
+          -> Restart jenkins by 'sudo systemctl restart jenkins'
+          -> By chance, if this strategy fails, then simply copy all the backup files to the JENKINS_HOME folder and restart jenkins.
+          -> Configure the environment variables in jenkins with the correct ECR repository names, docker images names. Configure the codedeploy settings in the codedeploy plugin as per your aws account setup(deployment group name, S3 bucket location, etc). Make sure the right version of the docker image is present in the appspec.yaml.
+          -> Configure a webhook in Github with the IP address of Jenkins ec2 instance.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
