@@ -65,13 +65,7 @@ A user pool is created in AWS Cognito using which external users can sign up and
 AWS CloudWatch is used for monitoring purposes. The logs generated during various operations are stored in CloudWatch. If any failure is encountered, we can immediately access the logs for troubleshooting purposes.
 
 
-# Others
-The below standalone entities can be used if you don't wish to get along with the CI/CD pipeline.
+# Deployment
 
-1. Deployment:
-A script named 'docker-deploy.sh' is created to carry out the below important operations
-
-           A. Checking out source code from Github
-           B. Building Docker images from the code
-           C. Deploy the images to spin up containers
+Kindly refer the Readme file present at the path 'cloud-project/cloudformation/'. This file will represent steps to deploy the different cloudformation stacks.
 
