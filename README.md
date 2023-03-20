@@ -6,7 +6,7 @@ This tech stack will deploy a web app on AWS cloud and a CICD pipeline will be b
 
 
 
-      ![alt text](https://github.com/ramos-04/cloud-webapp-with-jenkins/blob/9f46665465bb8bfcb50fc4335e85dd672a1f93e7/images/architecture.png)
+      ![alt text](https://github.com/ramos-04/cloud-webapp-with-jenkins/blob/bc6dc02722c53dbf2b03c7170b5656e8690ac733/images/architecture.jpg)
 
 
 2. EC2 Instance with Autoscaling Group:
