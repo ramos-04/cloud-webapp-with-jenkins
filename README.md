@@ -1,5 +1,5 @@
 # Cloud-Webapp-With-Jenkins
-The project involves the design and deployment of a website on the cloud leveraging different features of AWS.
+This tech stack will deploy a web app on AWS cloud and a CICD pipeline will be built using Jenkins as the CI server.
 
 # Modules
 1. Architecture:
