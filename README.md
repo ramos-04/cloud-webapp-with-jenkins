@@ -6,7 +6,7 @@ The project involves the design and deployment of a website on the cloud leverag
 
 
 
-      ![alt text](https://github.com/ramos-04/cloud-project/blob/master/images/architecture.png)
+      ![alt text](https://github.com/ramos-04/cloud-webapp-with-jenkins/project/blob/master/images/architecture.png)
 
 
 2. EC2 Instance:
