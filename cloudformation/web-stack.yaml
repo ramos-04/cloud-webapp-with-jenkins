@@ -12,6 +12,13 @@ Parameters:
       - t1.micro
       - t2.micro
 
+  parameterDatabaseInstanceType:
+    Description: Enter the Database instance type from the category of free tier
+    Type: String
+    AllowedValues:
+      - db.t2.micro
+      - db.t3.micro
+
   parameterIPForLoadBalancerAccess:
     Description: Enter the IP address(or range) of the HTTPS clients which can hit the Application Load Balancer(ALB). This is to add a layer of security by limiting HTTPS access to a specific number of clients. Failing to configure this parameter, a client with any IP address can access the ALB.
     Type: String
@@ -40,6 +47,15 @@ Parameters:
     Description: The target utilization for the CPU metric
     Type: String
     Default: 30
+
+  parameterDatabasePassword:
+    NoEcho: 'true'         # Whether to mask the parameter value to prevent it from being displayed in the console, command line tools, or API. If you set the NoEcho attribute to true, CloudFormation returns the parameter value masked as asterisks (*****) for any calls that describe the stack or stack events,
+    Description: Enter the database admin account password
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
 
   #parameterUserData:
   #  Description: script which will act as a userdata to initialize the EC2 instance during boot time
@@ -145,6 +161,18 @@ Resources:
        ToPort: 443
     #  FromPort: 80
     #  ToPort: 80
+
+
+  resourceSecurityGroupForDatabase:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+     GroupDescription: Allows traffic on port 3306 of the database
+     SecurityGroupIngress:
+     - SourceSecurityGroupName:
+        Ref: resourceSecurityGroupForEC2
+       IpProtocol: tcp
+       FromPort: 3306
+       ToPort: 3306
 
 
 # target group for a load balancer
@@ -298,7 +326,38 @@ Resources:
           PredefinedMetricType: ASGAverageCPUUtilization
         TargetValue: !Ref parameterCPUPolicyTargetValue
 
-        
+
+  resourceRDSDatabase:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBName: devicerdsdatabase  # The name of the database to create when the DB instance is created. If this parameter is not specified, no database is created in the DB instance
+      AllocatedStorage: '5'
+      DBInstanceClass: !Ref parameterDatabaseInstanceType
+      EngineVersion: 8.0.32
+      Engine: MySQL
+      MasterUsername: 'admin'
+      MasterUserPassword: !Ref parameterDatabasePassword
+      DBParameterGroupName: !Ref resourceRDSParameterGroup
+    # DBSubnetGroupName:          # the database should launch in private subnets across two different AZs
+        # Fn::ImportValue:
+           #   exportDatabaseSubnetGroup
+      VPCSecurityGroups:
+        - !GetAtt resourceSecurityGroupForDatabase.GroupId
+  #   VPCSecurityGroups:                   # import the database security group from the vpc stack using the cross stack reference
+  #      Fn::ImportValue:
+  #         exportSecurityGroupForDatabase
+
+
+# It is mandatory to create a custom parameter group in order to enable SSL/TLS in-flight encryption in RDS database
+  resourceRDSParameterGroup:
+    Type: AWS::RDS::DBParameterGroup
+    Properties:
+      Family: mysql8.0        # make sure the family should be compatible with the mysql engine version defined in resourceRDSDatabase
+      Description: creating a custom parameter group to enable in-flight SSL/TLS encryption on the RDS database
+      Parameters:
+        require_secure_transport: '1'        # set it to 1 to enable SSL/TLS
+
+
 Outputs:
 
   outputWebsiteURL:

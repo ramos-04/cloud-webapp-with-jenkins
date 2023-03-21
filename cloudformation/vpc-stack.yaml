@@ -1,6 +1,7 @@
-# This template will provision the VPC.
 
-Description: The template deploys a VPC, with a pair of public and private subnets spread across two Availability Zones. It deploys an internet gateway, with a default route on the public subnets. It deploys a pair of NAT gateways (one in each AZ), and default routes for them in the private subnets. Each NAT gateway is created in a specific Availability Zone. If you have resources in multiple Availability Zones and they share one NAT gateway, and if the NAT gateway’s Availability Zone is down, resources in the other Availability Zones lose internet access. To create an Availability Zone-independent architecture, create a NAT gateway in each Availability Zone and configure your routing to ensure that resources use the NAT gateway in the same Availability Zone. Two important things to note that the each type of subnets(public or private) are spread across multiple availability zones to achieve high availability. Secondly, a NAT gateway is deployed in every AZ due to the above reason. Thus, one private subnet and one public subnet is placed in AZ 1 while another private subnet and another public subnet is placed in AZ 2.
+# The template deploys a VPC, with a pair of public and private subnets spread across two Availability Zones. It deploys an internet gateway, with a default route on the public subnets. It deploys a pair of NAT gateways (one in each AZ), and default routes for them in the private subnets. Each NAT gateway is created in a specific Availability Zone. If you have resources in multiple Availability Zones and they share one NAT gateway, and if the NAT gateway’s Availability Zone is down, resources in the other Availability Zones lose internet access. To create an Availability Zone-independent architecture, create a NAT gateway in each Availability Zone and configure your routing to ensure that resources use the NAT gateway in the same Availability Zone. Two important things to note that the each type of subnets(public or private) are spread across multiple availability zones to achieve high availability. Secondly, a NAT gateway is deployed in every AZ due to the above reason. Thus, one private subnet and one public subnet is placed in AZ 1 while another private subnet and another public subnet is placed in AZ 2.
+
+Description: This template will provision a custom VPC.
 
 Parameters:
   parameterVpcCIDR:
@@ -115,7 +116,7 @@ Resources:
       AvailabilityZone: !Select           # selected a different availability zone as compared to the one mentioned for the previous private subnet to achieve high availability
         - 1
         - Fn::GetAZs: !Ref 'AWS::Region'
-      CidrBlock: !Ref PrivateSubnet2CIDR  # cidr range of the subnet
+      CidrBlock: !Ref parameterPrivateSubnet2CIDR  # cidr range of the subnet
       MapPublicIpOnLaunch: false       # Indicates whether instances launched in this subnet receive a public IPv4 address. False means no public IP allocated.
       Tags:
         - Key: Name
@@ -266,6 +267,30 @@ Resources:
        ToPort: 80
 
 
+# This is the security group for the RDS database instance
+  resourceDatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: set a firewall on the RDS mysql database
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupName:
+            Ref: resourceSecurityGroupForEC2
+
+
+# specify the subnets in which the RDS database instance should launch. Select two private subnets across two different availability zones.
+  resourceDatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: specify the subnets in which the RDS database instance should launch
+      SubnetIds:
+        - !Ref resourcePrivateSubnet1
+        - !Ref resourcePrivateSubnet2
+
+
+
 Outputs:
 
   outputVPC:
@@ -298,6 +323,12 @@ Outputs:
     Export:
       Name: exportPrivateSubnet2
 
+  outputDatabaseSubnetGroup:
+    Description: A reference to the database subnet group
+    Value: !Ref resourceDatabaseSubnetGroup
+    Export:
+      Name: exportDatabaseSubnetGroup
+
   outputSecurityGroupForEC2:
     Description: A reference to the security group for EC2
     Value: !Ref resourceSecurityGroupForEC2
@@ -309,3 +340,9 @@ Outputs:
     Value: !Ref resourceSecurityGroupForLoadBalancer
     Export:
       Name: exportSecurityGroupForLoadBalancer
+
+  outputSecurityGroupForDatabase:
+    Description: A reference to the security group for the RDS mysql database
+    Value: !Ref resourceDatabaseSecurityGroup
+    Export:
+      Name: exportSecurityGroupForDatabase
