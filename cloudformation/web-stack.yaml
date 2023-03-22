@@ -163,16 +163,39 @@ Resources:
     #  ToPort: 80
 
 
+# This is the security group for the RDS database instance. Allow traffic only from the Lambda ENI security group.
   resourceSecurityGroupForDatabase:
     Type: AWS::EC2::SecurityGroup
     Properties:
-     GroupDescription: Allows traffic on port 3306 of the database
-     SecurityGroupIngress:
-     - SourceSecurityGroupName:
-        Ref: resourceSecurityGroupForEC2
-       IpProtocol: tcp
-       FromPort: 3306
-       ToPort: 3306
+      GroupDescription: set a firewall on the RDS mysql database. Allow traffic only from the Lambda ENI on port 3306
+      VpcId:
+        Ref: parameterVPCID
+
+
+# Creating a different ingress resource. Failing to do so, will create circular dependency problem between the two security groups -  resourceSecurityGroupForDatabase and resourceLambdaENISecurityGroup. They both reference each other.
+  resourceSecurityGroupIngressForDatabase:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Security Group ingress rule for the resource resourceSecurityGroupForDatabase
+      GroupId: !Ref resourceSecurityGroupForDatabase
+      IpProtocol: tcp
+      FromPort: 3306    # allow traffic only on port 3306 and only from the source resourceLambdaENISecurityGroup
+      ToPort: 3306
+      SourceSecurityGroupId: !GetAtt resourceLambdaENISecurityGroup.GroupId
+
+
+# This is the security group for the ENI which will be created by the Lambda while trying to access the RDS database. Allow outbound traffic to only RDS database
+  resourceLambdaENISecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: set a firewall on the ENI created by the lambda while trying to access the RDS database
+      VpcId:
+        Ref: parameterVPCID
+      SecurityGroupEgress:
+        - IpProtocol: tcp
+          FromPort: 3306     # permission to access only the 3306 port of the RDS database
+          ToPort: 3306
+          DestinationSecurityGroupId: !GetAtt resourceSecurityGroupForDatabase.GroupId
 
 
 # target group for a load balancer
@@ -329,6 +352,7 @@ Resources:
 
   resourceRDSDatabase:
     Type: AWS::RDS::DBInstance
+    DeletionPolicy: Delete       # by default, when the database is deleted, AWS takes a snapshot of the database. By setting this policy to delete, no snapshot of the database will be taken while the database is being deleted by the cloudformation stack.
     Properties:
       DBName: devicerdsdatabase  # The name of the database to create when the DB instance is created. If this parameter is not specified, no database is created in the DB instance
       AllocatedStorage: '5'
@@ -338,6 +362,10 @@ Resources:
       MasterUsername: 'admin'
       MasterUserPassword: !Ref parameterDatabasePassword
       DBParameterGroupName: !Ref resourceRDSParameterGroup
+      MultiAZ: false
+      BackupRetentionPeriod: 0
+      EnablePerformanceInsights: false
+      MonitoringInterval: 0
     # DBSubnetGroupName:          # the database should launch in private subnets across two different AZs
         # Fn::ImportValue:
            #   exportDatabaseSubnetGroup
