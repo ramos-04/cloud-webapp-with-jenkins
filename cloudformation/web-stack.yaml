@@ -206,8 +206,18 @@ Resources:
           DestinationSecurityGroupId: !GetAtt resourceSecurityGroupForDatabase.GroupId
 
 
-# target group for a load balancer
-  resourceTargetGroup:
+# create a target group which will only host a Lambda function
+  resourceLambdaTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    DependsOn: resourceLambdaResourcebasedPolicy
+    Properties:
+      TargetType: lambda
+      Targets:
+        - Id: !GetAtt resourceLambdaFunction.Arn
+
+
+# create a target group which will only host EC2 instances(autoscaling group)
+  resourceEC2TargetGroup:
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
     Properties:
       HealthCheckIntervalSeconds: 25
@@ -255,7 +265,7 @@ Resources:
       Certificates:
       - CertificateArn: !Ref parameterTLSCertificateARN
       DefaultActions:
-      - TargetGroupArn: !Ref resourceTargetGroup
+      - TargetGroupArn: !Ref resourceEC2TargetGroup
         Type: forward
       LoadBalancerArn: !Ref resourceApplicationLoadBalancer
     # Port: 80
@@ -264,12 +274,13 @@ Resources:
    #  Protocol: HTTP
 
 
+# create a listener rule to forward the request to the EC2 target group
   resourceListenerRule1:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
       Actions:
         - Type: forward
-          TargetGroupArn: !Ref resourceTargetGroup
+          TargetGroupArn: !Ref resourceEC2TargetGroup
       Conditions:
         - Field: path-pattern
           PathPatternConfig:
@@ -279,12 +290,13 @@ Resources:
       Priority: 1
 
 
+# create a listener rule to forward the request to the EC2 target group
   resourceListenerRule2:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
       Actions:
         - Type: forward
-          TargetGroupArn: !Ref resourceTargetGroup
+          TargetGroupArn: !Ref resourceEC2TargetGroup
       Conditions:
         - Field: path-pattern
           PathPatternConfig:
@@ -294,6 +306,7 @@ Resources:
       Priority: 2
 
 
+# create a listener rule to send a fixed response from the ALB. The request is not forwarded to the EC2 target group.
   resourceListenerRule3:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
@@ -311,12 +324,13 @@ Resources:
       Priority: 3
 
 
+# create a listener rule to forward the request to the EC2 target group
   resourceListenerRule4:
     Type: AWS::ElasticLoadBalancingV2::ListenerRule
     Properties:
       Actions:
         - Type: forward
-          TargetGroupArn: !Ref resourceTargetGroup
+          TargetGroupArn: !Ref resourceEC2TargetGroup
       Conditions:
         - Field: path-pattern
           PathPatternConfig:
@@ -324,6 +338,22 @@ Resources:
               - '/auth'                               # /auth
       ListenerArn: !Ref resourceHTTPSALBListener
       Priority: 4
+
+
+# create a listener rule to forward the request to the lambda function target group
+  resourceListenerRule5:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - Type: forward
+          TargetGroupArn: !Ref resourceLambdaTargetGroup
+      Conditions:
+        - Field: path-pattern
+          PathPatternConfig:
+            Values:
+              - '/lambdaapi/adddevice'                         # /lambdaapi/adddevice
+      ListenerArn: !Ref resourceHTTPSALBListener
+      Priority: 5
 
 
 # create an autoscaling group
@@ -344,7 +374,7 @@ Resources:
      MinSize: '1'
      DesiredCapacity: '1'
      TargetGroupARNs:
-        - !Ref resourceTargetGroup
+        - !Ref resourceEC2TargetGroup
 
 
 # create a target auto scaling policy
@@ -439,6 +469,13 @@ Resources:
    #          exportPrivateSubnet2
 
 
+# create a resource based policy and attach it to the Lambda function. This policy will give permission to the loadbalancer to access/invoke the lambda function.
+  resourceLambdaResourcebasedPolicy:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt resourceLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: elasticloadbalancing.amazonaws.com
 
 Outputs:
 
@@ -454,6 +491,6 @@ Outputs:
 
   outputTargetGroup:
     Description: Export ID of the target group from this stack to another stack - cross stack reference
-    Value: !GetAtt resourceTargetGroup.TargetGroupName
+    Value: !GetAtt resourceEC2TargetGroup.TargetGroupName
     Export:
       Name: exportTargetGroup-ID

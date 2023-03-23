@@ -4,7 +4,7 @@ import pymysql
 import json
 
 # rds settings
-rds_host  = "ramos-web-stack-resourcerdsdatabase-ylnlkmytvqvr.clxixo8q2v3c.ap-south-1.rds.amazonaws.com"
+rds_host  = "ramos-web-stack-resourcerdsdatabase-ylngdfglqr.cl2vdfgdfg3c.ap-south-1.rds.amazonaws.com"
 user_name = "admin"
 password = "mydbpassword"
 db_name = "devicerdsdatabase"

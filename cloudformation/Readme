@@ -1,4 +1,5 @@
-**********  This file will give you the steps to deploy the cloudformation stacks  **********
+**********  This Readme file will give you the steps to deploy the cloudformation stacks  **********
+
 
 1. The vpcstack contains the vpc components. These components are referenced in the webstack. Currently, the reference part is commented but you can enable it anytime by uncommenting and tweaking.
 
@@ -9,7 +10,7 @@
 
 -> Make sure you have installed AWS cli in your development machine. Configure the secret key and access key in the aws cli. Always use environment variables for the same so that the lifetime of the credentials is only till the time the shell exists. Set the AWS region closest to your location(Mumbai) as if you choose US region and you stay in Mumbai, then you may incur high data transfer cost. AWS by default uses cloudfront to route traffic globally. Thus, you have to pay the cloudfront data tranfer cost.
 
--> Create a SSH key pair in the Mumbai AWS region. Pass the keypair name as a parameter to the cloudformation command.
+-> Create a SSH key pair in the Mumbai AWS region. Pass the keypair name as a parameter to the cloudformation stack command.
 
 -> Create a TLS certificate using the below commands and upload it to ACM
 
@@ -53,12 +54,12 @@
 
         -> create the cloudformation web stack   (Please check how you have inputted multiple values(list) for the parameterSubnetID parameter)
 
-$ aws cloudformation create-stack --stack-name ramos-web-stack --template-body file://web-stack.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterDatabaseInstanceType,ParameterValue=db.t2.micro ParameterKey=parameterDatabasePassword,ParameterValue=samplepassword ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterSubnetID,ParameterValue="subnet-0d123456789b4d4\,subnet-0ee123456789cbd" ParameterKey=parameterVPCID,ParameterValue=vpc-094123456789d21 ParameterKey=parameterTLSCertificateARN,ParameterValue=arn:aws:acm:ap-south-1:41234567891860:certificate/4b123de3-5cbd-4122-8518-e8123456602 ParameterKey=parameterIPForLoadBalancerAccess,ParameterValue=182.70.4.20/32 ParameterKey=parameterIPForSSHAccess,ParameterValue=182.70.4.20/32 ParameterKey=parameterS3Bucket,ParameterValue=ramos-lambda-s3-bucket ParameterKey=parameterS3ObjectKey,ParameterValue=lambda_function.zip --capabilities CAPABILITY_IAM
+$ aws cloudformation create-stack --stack-name ramos-web-stack --template-body file://web-stack.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterDatabaseInstanceType,ParameterValue=db.t2.micro ParameterKey=parameterDatabasePassword,ParameterValue=samplepassword ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterSubnetID,ParameterValue="subnet-0d123456789b4d4\,subnet-0ee123456789cbd" ParameterKey=parameterVPCID,ParameterValue=vpc-094123456789d21 ParameterKey=parameterTLSCertificateARN,ParameterValue=arn:aws:acm:ap-south-1:41234567891860:certificate/4b123de3-5cbd-4122-8518-e8123456602 ParameterKey=parameterIPForLoadBalancerAccess,ParameterValue=02.00.4.20/32 ParameterKey=parameterIPForSSHAccess,ParameterValue=02.00.4.20/32 ParameterKey=parameterS3Bucket,ParameterValue=ramos-lambda-s3-bucket ParameterKey=parameterS3ObjectKey,ParameterValue=lambda_function.zip --capabilities CAPABILITY_IAM
 
 
        -> update the cloudformation web stack
 
-$ aws cloudformation update-stack --stack-name ramos-web-stack --template-body file://web-stack.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterDatabaseInstanceType,ParameterValue=db.t2.micro ParameterKey=parameterDatabasePassword,ParameterValue=samplepassword ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterSubnetID,ParameterValue="subnet-0d123456789b4d4\,subnet-0ee123456789cbd" ParameterKey=parameterVPCID,ParameterValue=vpc-094123456789d21 ParameterKey=parameterTLSCertificateARN,ParameterValue=arn:aws:acm:ap-south-1:41234567891860:certificate/4b123de3-5cbd-4122-8518-e8123456602 ParameterKey=parameterIPForLoadBalancerAccess,ParameterValue=182.70.4.20/32 ParameterKey=parameterIPForSSHAccess,ParameterValue=182.70.4.20/32 ParameterKey=parameterS3Bucket,ParameterValue=ramos-lambda-s3-bucket ParameterKey=parameterS3ObjectKey,ParameterValue=lambda_function.zip --capabilities CAPABILITY_IAM
+$ aws cloudformation update-stack --stack-name ramos-web-stack --template-body file://web-stack.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterDatabaseInstanceType,ParameterValue=db.t2.micro ParameterKey=parameterDatabasePassword,ParameterValue=samplepassword ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterSubnetID,ParameterValue="subnet-0d123456789b4d4\,subnet-0ee123456789cbd" ParameterKey=parameterVPCID,ParameterValue=vpc-094123456789d21 ParameterKey=parameterTLSCertificateARN,ParameterValue=arn:aws:acm:ap-south-1:41234567891860:certificate/4b123de3-5cbd-4122-8518-e8123456602 ParameterKey=parameterIPForLoadBalancerAccess,ParameterValue=02.00.4.20/32 ParameterKey=parameterIPForSSHAccess,ParameterValue=02.00.4.20/32 ParameterKey=parameterS3Bucket,ParameterValue=ramos-lambda-s3-bucket ParameterKey=parameterS3ObjectKey,ParameterValue=lambda_function.zip --capabilities CAPABILITY_IAM
 
 
 (When you update a stack, you submit changes, such as new input parameter values or an updated template. AWS CloudFormation compares the changes you submit with the current state of your stack and updates only the changed resources)
@@ -114,15 +115,27 @@ $ aws cloudformation update-stack --stack-name ramos-cicd-stack --template-body 
 
 *** CLEANUP ***
 
--> Delete all the cloudformation stacks. Ensure they are successfully deleted after reviewing their final status.
+-> Remove the ssh key pair which was used to take ssh access of the ec2 instance.
 
--> Delete the SSL/TLS certificate which you imported in ACM
+-> Delete the aws cli secret access keys if created any.
+
+-> Delete all the cloudformation stacks. Ensure the final status of the cloudfromation stack is 'delete_complete'.
+
+-> Ensure no unnecessary IAM roles are created and left. Scan the roles section once.
+
+-> Delete the unnecessary IAM users/groups, if created any.
+
+-> Ensure no unnecessary security groups exist. 
+
+-> Ensure unnecessary cloudwatch logs are deleted. Anyways, they have a expiry.
+
+-> Delete the SSL/TLS certificate which you had imported in ACM
 
 -> While deleting the stack, cloudformation fails to delete the S3 bucket if it is not empty. Thus, empty all the S3 buckets and delete them manually. Automate this process in the future using Lambda.
 
 -> Ensure no snapshots/automated backups exist in RDS.
 
--> Delete the S3 bucket 'ramos-lambda-s3-bucket' which you created to store the lambda deployment package.
+-> Delete the S3 bucket 'ramos-lambda-s3-bucket' which you had created to store the lambda deployment package.
 
 
 
