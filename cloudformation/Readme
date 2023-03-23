@@ -127,7 +127,7 @@ $ aws cloudformation update-stack --stack-name ramos-cicd-stack --template-body 
 
 -> Ensure no unnecessary security groups exist. 
 
--> Ensure unnecessary cloudwatch logs are deleted. Anyways, they have a expiry.
+-> Ensure unnecessary cloudwatch logs are deleted. By default, whenever a Lambda function is created, it creates a cloudWatch Log Group whose retention is set to 'never expire'. Thus, the logs pushed by the Lambda are always available. To modify this behaviour, you have to create a custom log group and attach it to the lambda function in the cfn template.
 
 -> Delete the SSL/TLS certificate which you had imported in ACM
 
