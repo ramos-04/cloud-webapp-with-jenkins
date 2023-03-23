@@ -28,6 +28,20 @@
 
 -> Find the public IP of your development machine. A simple google search of 'whatismyipaddress' will show you your public IP. Configure this IP in the parameter of the cloudformation command so that only your development machine can do ssh access in the ec2 instance and can access the ALB. Launch the stack in the Mumbai region to avoid high data transfer charges. If you used US region, then aws sometimes by default uses cloudfront to route the request faster and thus this can incur charges. Copy the free tier AMI-ID, free tier EC2-instance type(t2.micro), default vpcid, subnet id from the aws management console with respect to the correct AWS region.
 
+-> Upload the lambda deployment package to S3. Currently, we have kept this process manual, however, in the future, this process will be automated after it's integration with Jenkins and Codedeploy.
+
+       - create a S3 bucket named 'ramos-lambda-s3-bucket' in the AWS Mumbai region. The region of the S3 bucket and the region in which the lambda function will get deployed should be the same.
+       - Go to the folder 'lambda-API' and hit the below commands to create a deployment package. Make sure python and pip are installed in your machine.
+       -   $ mkdir package
+           $ pip install --target package pymysql 
+           $ cd package
+           $ zip -r ../lambda_function.zip .
+           $ cd ..
+           $ zip lambda_function.zip lambda_function.py
+       - Upload the deployment package to s3.
+       - Pass the above S3 bucket name and the object key(deployment package key) as parameters to the cloudformation template.
+
+
 -> There are multiple stacks and they are linked via cross stack reference. VPC stack creates vpc resources. The web stack and the cicd stack using jenkins depends on the vpc stack to input vpc resources(however currently that linking is commented as a custom vpc is not under free tier, hence we are using the default free vpc offered by vpc). The cicd stack using jenkins is dependent on web stack as it requires ASG and Target group parameters to link with codedeploy.
 
 -> You can validate the cloudformation template first to check for formatting and syntax errors
@@ -39,12 +53,12 @@
 
         -> create the cloudformation web stack   (Please check how you have inputted multiple values(list) for the parameterSubnetID parameter)
 
-$ aws cloudformation create-stack --stack-name ramos-web-stack --template-body file://web-stack.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterDatabaseInstanceType,ParameterValue=db.t2.micro ParameterKey=parameterDatabasePassword,ParameterValue=mydbpassword ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterSubnetID,ParameterValue="subnet-0debsdf43efacb381234\,subnet-0dsgfhcdefrfd381234" ParameterKey=parameterVPCID,ParameterValue=vpc-09412fresdf3fsd0ce2d21 ParameterKey=parameterTLSCertificateARN,ParameterValue=arn:aws:acm:ap-south-1:444444444444:certificate/444444463-412a-444444a5-44444dd-4444444385 ParameterKey=parameterIPForLoadBalancerAccess,ParameterValue=100.10.10.10/32 ParameterKey=parameterIPForSSHAccess,ParameterValue=100.10.10.10/32 --capabilities CAPABILITY_IAM
+$ aws cloudformation create-stack --stack-name ramos-web-stack --template-body file://web-stack.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterDatabaseInstanceType,ParameterValue=db.t2.micro ParameterKey=parameterDatabasePassword,ParameterValue=samplepassword ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterSubnetID,ParameterValue="subnet-0d123456789b4d4\,subnet-0ee123456789cbd" ParameterKey=parameterVPCID,ParameterValue=vpc-094123456789d21 ParameterKey=parameterTLSCertificateARN,ParameterValue=arn:aws:acm:ap-south-1:41234567891860:certificate/4b123de3-5cbd-4122-8518-e8123456602 ParameterKey=parameterIPForLoadBalancerAccess,ParameterValue=182.70.4.20/32 ParameterKey=parameterIPForSSHAccess,ParameterValue=182.70.4.20/32 ParameterKey=parameterS3Bucket,ParameterValue=ramos-lambda-s3-bucket ParameterKey=parameterS3ObjectKey,ParameterValue=lambda_function.zip --capabilities CAPABILITY_IAM
 
 
        -> update the cloudformation web stack
 
-$ aws cloudformation update-stack --stack-name ramos-web-stack --template-body file://web-stack.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterDatabaseInstanceType,ParameterValue=db.t2.micro ParameterKey=parameterDatabasePassword,ParameterValue=mydbpassword ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterSubnetID,ParameterValue="subnet-0debsdf43efacb381234\,subnet-0dsgfhcdefrfd381234" ParameterKey=parameterVPCID,ParameterValue=vpc-09412fresdf3fsd0ce2d21 ParameterKey=parameterTLSCertificateARN,ParameterValue=arn:aws:acm:ap-south-1:444444444444:certificate/444444463-412a-444444a5-44444dd-4444444385 ParameterKey=parameterIPForLoadBalancerAccess,ParameterValue=100.10.10.10/32 ParameterKey=parameterIPForSSHAccess,ParameterValue=100.10.10.10/32 --capabilities CAPABILITY_IAM
+$ aws cloudformation update-stack --stack-name ramos-web-stack --template-body file://web-stack.yaml --parameters ParameterKey=parameterAMIID,ParameterValue=ami-0caf778a172362f1c ParameterKey=parameterEC2InstanceType,ParameterValue=t2.micro ParameterKey=parameterDatabaseInstanceType,ParameterValue=db.t2.micro ParameterKey=parameterDatabasePassword,ParameterValue=samplepassword ParameterKey=parameterSSHKeyPair,ParameterValue=ramos-key-pair ParameterKey=parameterSubnetID,ParameterValue="subnet-0d123456789b4d4\,subnet-0ee123456789cbd" ParameterKey=parameterVPCID,ParameterValue=vpc-094123456789d21 ParameterKey=parameterTLSCertificateARN,ParameterValue=arn:aws:acm:ap-south-1:41234567891860:certificate/4b123de3-5cbd-4122-8518-e8123456602 ParameterKey=parameterIPForLoadBalancerAccess,ParameterValue=182.70.4.20/32 ParameterKey=parameterIPForSSHAccess,ParameterValue=182.70.4.20/32 ParameterKey=parameterS3Bucket,ParameterValue=ramos-lambda-s3-bucket ParameterKey=parameterS3ObjectKey,ParameterValue=lambda_function.zip --capabilities CAPABILITY_IAM
 
 
 (When you update a stack, you submit changes, such as new input parameter values or an updated template. AWS CloudFormation compares the changes you submit with the current state of your stack and updates only the changed resources)
@@ -85,9 +99,30 @@ $ aws cloudformation update-stack --stack-name ramos-cicd-stack --template-body 
 
 
 
+*** update the lambda code ***
 
+-> If you have modified the lambda code in the local system and would like to update it in AWS to deploy a new version of lambda function - 
 
+    - Update the local lambda code. Create a new deployment package and upload it in S3. Make sure versioning is enabled in that bucket.
+    - run the below aws cli command to update and deploy the new version of the lambda code
 
+     $ aws lambda update-function-code --function-name  my-function --s3-bucket ramos-lambda-s3-bucket --s3-key lambda_function.zip
+   
+    - This process will soon be automated using Jenkins and Codedeploy
+    
+    
+
+*** CLEANUP ***
+
+-> Delete all the cloudformation stacks. Ensure they are successfully deleted after reviewing their final status.
+
+-> Delete the SSL/TLS certificate which you imported in ACM
+
+-> While deleting the stack, cloudformation fails to delete the S3 bucket if it is not empty. Thus, empty all the S3 buckets and delete them manually. Automate this process in the future using Lambda.
+
+-> Ensure no snapshots/automated backups exist in RDS.
+
+-> Delete the S3 bucket 'ramos-lambda-s3-bucket' which you created to store the lambda deployment package.
 
 
 
