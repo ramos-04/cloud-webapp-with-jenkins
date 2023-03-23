@@ -469,6 +469,15 @@ Resources:
    #          exportPrivateSubnet2
 
 
+# creating a custom log group with a specific retention policy and attaching it to the lambda function. If a custom log group is not created, then Lambda will create a log group with the retention set to 'Never Expire'
+  resourceLambdaLogGroup:
+    Type: AWS::Logs::LogGroup
+    DependsOn: resourceLambdaFunction
+    Properties:
+      RetentionInDays: 2
+      LogGroupName: !Join ["", ["/aws/lambda/", !Ref resourceLambdaFunction]]
+
+
 # create a resource based policy and attach it to the Lambda function. This policy will give permission to the loadbalancer to access/invoke the lambda function.
   resourceLambdaResourcebasedPolicy:
     Type: AWS::Lambda::Permission
