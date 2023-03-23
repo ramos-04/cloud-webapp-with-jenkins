@@ -238,6 +238,7 @@ Resources:
       RouteTableId: !Ref resourcePrivateRouteTable2
       SubnetId: !Ref resourcePrivateSubnet2
 
+
 # security group for the EC2 instance. Allows traffic on port 8080 only from the load balancer. Allows ssh access to defined clients on port 22
   resourceSecurityGroupForEC2:
       Type: AWS::EC2::SecurityGroup
@@ -267,17 +268,36 @@ Resources:
        ToPort: 80
 
 
-# This is the security group for the RDS database instance
-  resourceDatabaseSecurityGroup:
+# This is the security group for the RDS database instance. Allow traffic only from the Lambda ENI security group.
+  resourceSecurityGroupForDatabase:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: set a firewall on the RDS mysql database
-      SecurityGroupIngress:
+      GroupDescription: set a firewall on the RDS mysql database. Allow traffic only from the Lambda ENI on port 3306
+      VpcId: !Ref resourceVPC
+
+
+# Creating a different ingress resource. Failing to do so, will create circular dependency problem between the two security groups -  resourceSecurityGroupForDatabase and resourceLambdaENISecurityGroup. They both reference each other.
+  resourceSecurityGroupIngressForDatabase:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      Description: Security Group ingress rule for the resource resourceSecurityGroupForDatabase
+      GroupId: !Ref resourceSecurityGroupForDatabase
+      IpProtocol: tcp
+      FromPort: 3306    # allow traffic only on port 3306 and only from the source resourceLambdaENISecurityGroup
+      ToPort: 3306
+      SourceSecurityGroupId: !GetAtt resourceLambdaENISecurityGroup.GroupId
+
+
+# This is the security group for the ENI which will be created by the Lambda while trying to access the RDS database. Allow outbound traffic to only RDS database
+  resourceLambdaENISecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: set a firewall on the ENI created by the lambda while trying to access the RDS database
+      SecurityGroupEgress:
         - IpProtocol: tcp
-          FromPort: 3306
+          FromPort: 3306     # permission to access only the 3306 port of the RDS database
           ToPort: 3306
-          SourceSecurityGroupName:
-            Ref: resourceSecurityGroupForEC2
+          DestinationSecurityGroupId: !GetAtt resourceSecurityGroupForDatabase.GroupId
 
 
 # specify the subnets in which the RDS database instance should launch. Select two private subnets across two different availability zones.
@@ -343,6 +363,12 @@ Outputs:
 
   outputSecurityGroupForDatabase:
     Description: A reference to the security group for the RDS mysql database
-    Value: !Ref resourceDatabaseSecurityGroup
+    Value: !Ref resourceSecurityGroupForDatabase
     Export:
       Name: exportSecurityGroupForDatabase
+
+  outputSecurityGroupForLambdaENI:
+    Description: A reference to the security group for the Lambda ENI
+    Value: !Ref resourceLambdaENISecurityGroup
+    Export:
+      Name: exportSecurityGroupForLambdaENI
