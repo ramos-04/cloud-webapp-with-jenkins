@@ -245,11 +245,11 @@ Resources:
     DeletionPolicy: Delete
     Properties:
       Subnets:
-         Ref: parameterSubnetID
+         Ref: parameterSubnetID    # configure the subnets of the targets here. The loadbalancer will route traffic to only targets residing in these subnets and AZs.
    #     - Fn::ImportValue:
-   #          exportPublicSubnet1
+   #          exportPrivateSubnet1
    #     - Fn::ImportValue:
-   #          exportPublicSubnet2
+   #          exportPrivateSubnet2
       SecurityGroups:
        - !GetAtt resourceSecurityGroupForLoadBalancer.GroupId
   #   SecurityGroups:                   # import the security group from the vpc stack using the cross stack reference
